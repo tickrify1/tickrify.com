@@ -1,0 +1,16 @@
+# Arquivos desnecessários para deploy na Vercel
+backend/
+node_modules/
+.env
+.env.local
+.env.development
+.env.production
+*.log
+.DS_Store
+__pycache__/
+*.pyc
+venv/
+.venv/
+*.db
+*.sqlite
+*.sqlite3
