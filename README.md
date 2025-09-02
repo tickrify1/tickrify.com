@@ -18,7 +18,7 @@ Plataforma de análise de trading com inteligência artificial.
 
 ## 🌐 Live Demo
 
-[Ver demo ao vivo](https://tickrify.vercel.app)
+[Ver demo ao vivo](https://tickrify.com)
 
 ---
 
