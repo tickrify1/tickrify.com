@@ -24,9 +24,5 @@
         }
       ]
     }
-  ],
-  "env": {
-    "VITE_BACKEND_URL": "@backend_url",
-    "VITE_STRIPE_PUBLISHABLE_KEY": "@stripe_publishable_key"
-  }
+  ]
 }

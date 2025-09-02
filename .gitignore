@@ -34,3 +34,4 @@ backend/tickrify_users.db
 backend/__pycache__/
 backend/venv/
 backend/*.log
+.vercel
