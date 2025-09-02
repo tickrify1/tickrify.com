@@ -22,11 +22,16 @@ export const useStripeCheckout = () => {
     
     try {
       console.log('🚀 Iniciando checkout para priceId:', priceId);
+      console.log('🔑 STRIPE_PK:', STRIPE_PK);
+      console.log('🔗 Backend URL:', import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000');
       
       // Verificar se o Stripe está configurado
       const isStripeConfigured = STRIPE_PK && 
         STRIPE_PK !== 'pk_test_CONFIGURE_SUA_CHAVE_PUBLICA_AQUI' &&
-        priceId !== 'price_CONFIGURE_SEU_PRICE_ID_AQUI';
+        priceId !== 'price_CONFIGURE_SEU_PRICE_ID_AQUI' &&
+        STRIPE_PK.startsWith('pk_');
+
+      console.log('✅ Stripe configurado:', isStripeConfigured);
 
       if (!isStripeConfigured) {
         console.warn('⚠️ Stripe não configurado - usando endpoint de demo');
@@ -64,12 +69,14 @@ export const useStripeCheckout = () => {
       }
 
       // Fluxo normal do Stripe (chaves configuradas)
+      console.log('✅ Usando Stripe real - carregando...');
       const stripe = await stripePromise;
       
       if (!stripe) {
         throw new Error('Stripe não foi carregado corretamente');
       }
 
+      console.log('🌐 Chamando backend para criar sessão...');
       // Chamar backend para criar sessão real
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'}/create-checkout-session`, {
         method: 'POST',
@@ -84,19 +91,26 @@ export const useStripeCheckout = () => {
         }),
       });
 
+      console.log('📡 Response status:', response.status);
+
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('❌ Erro na resposta:', errorData);
         throw new Error(errorData.detail || 'Erro ao criar sessão de checkout');
       }
 
-      const { sessionId } = await response.json();
+      const { sessionId, url } = await response.json();
+      console.log('✅ Sessão criada:', sessionId);
+      console.log('🔗 URL do checkout:', url);
 
       // Redirecionar para checkout real do Stripe
+      console.log('🚀 Redirecionando para Stripe Checkout...');
       const result = await stripe.redirectToCheckout({
         sessionId,
       });
 
       if (result.error) {
+        console.error('❌ Erro no redirecionamento:', result.error);
         throw new Error(result.error.message);
       }
 

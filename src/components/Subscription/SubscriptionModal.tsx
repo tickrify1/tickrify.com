@@ -17,14 +17,19 @@ export function SubscriptionModal({ isOpen, onClose }: SubscriptionModalProps) {
     setIsLoading(true);
     
     try {
+      console.log('🚀 Iniciando upgrade para plano Trader...');
+      
       const result = await createTraderCheckout();
       
       if (result.success) {
+        console.log('✅ Redirecionando para checkout do Stripe...');
         // O usuário será redirecionado para o Stripe Checkout
       } else {
+        console.error('❌ Erro no checkout:', result.error);
         alert(`Erro ao processar pagamento: ${result.error}`);
       }
     } catch (error: any) {
+      console.error('❌ Erro no upgrade:', error);
       alert('Erro ao processar upgrade. Tente novamente.');
     } finally {
       setIsLoading(false);
