@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Sidebar } from './components/Layout/Sidebar';
 import { Header } from './components/Layout/Header';
 import { useNavigation } from './hooks/useNavigation';
@@ -19,30 +19,11 @@ function App() {
     const { isAuthenticated, isLoading } = useAuth();
     const { switchPlan, getPlanType } = useSubscription();
     const [sidebarOpen, setSidebarOpen] = useState(false);
-    
-    // Hook responsivo melhorado
-    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-    const [isTablet, setIsTablet] = useState(window.innerWidth >= 768 && window.innerWidth < 1024);
-    
-    useEffect(() => {
-      const handleResize = () => {
-        setIsMobile(window.innerWidth < 768);
-        setIsTablet(window.innerWidth >= 768 && window.innerWidth < 1024);
-        
-        // Fechar sidebar automaticamente em mobile quando redimensionar
-        if (window.innerWidth < 1024) {
-          setSidebarOpen(false);
-        }
-      };
-      
-      window.addEventListener('resize', handleResize);
-      return () => window.removeEventListener('resize', handleResize);
-    }, []);
+    const isMobile = window.innerWidth < 768; // Substituir useDeviceDetection
 
     console.log('Hooks carregados com sucesso:', {
       currentPage,
       isMobile,
-      isTablet,
       isAuthenticated,
       isLoading,
       user: isAuthenticated ? 'authenticated' : 'not authenticated'
@@ -149,11 +130,8 @@ function App() {
             currentPlanType={getPlanType()}
           />
           
-          {/* Content Area - Responsivo com container */}
-          <main className="flex-1 overflow-auto layout-content">
-            <div className="container-responsive">
-              {renderPage()}
-            </div>
+          <main className="flex-1 overflow-auto p-3 sm:p-4 lg:p-6">
+            {renderPage()}
           </main>
         </div>
         

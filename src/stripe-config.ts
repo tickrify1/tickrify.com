@@ -38,7 +38,7 @@ export const stripeProducts: StripeProduct[] = [
   },
   {
     id: 'prod_trader_real',
-    priceId: 'price_1S2cj4B1hl0IoocUfB4Xwgrp', // Price ID real do Stripe configurado ✅
+    priceId: import.meta.env.VITE_STRIPE_TRADER_PRICE_ID || 'price_1S2cj4B1hl0IoocUfB4Xwgrp', // Price ID real do Stripe configurado ✅
     name: 'TRADER (Profissional)',
     description: 'Plano profissional com análises reais de IA, dados de mercado em tempo real e todas as funcionalidades ativas.',
     mode: 'subscription',
