@@ -28,12 +28,15 @@ export default function Settings() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
+      // Update profile
       await updateProfile({ 
         name: formData.displayName 
       });
       
+      // Update settings
       await updateSettings(formData);
       
+      // Force re-render by dispatching a custom event
       window.dispatchEvent(new CustomEvent('profileUpdated'));
       
       setSaveSuccess(true);
@@ -48,7 +51,7 @@ export default function Settings() {
   const tabs = [
     { id: 'profile', label: 'Perfil', icon: User },
     { id: 'notifications', label: 'Notificações', icon: Bell },
-    { id: 'privacy', label: 'Privacidade', icon: Shield },
+    { id: 'privacy', label: 'Privacidade e Segurança', icon: Shield },
   ];
 
   return (
@@ -63,50 +66,25 @@ export default function Settings() {
             </p>
           </div>
 
-          {/* Mobile Navigation Tabs */}
-          <div className="block md:hidden border-b border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800">
-            <nav className="px-4 py-2">
-              <div className="flex overflow-x-auto space-x-1 pb-2">
-                {tabs.map((tab) => {
-                  const Icon = tab.icon;
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveTab(tab.id)}
-                      className={`flex-shrink-0 flex flex-col items-center gap-1 px-4 py-3 rounded-lg text-xs transition-colors min-w-[90px] ${
-                        activeTab === tab.id
-                          ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                          : 'text-gray-700 dark:text-slate-300'
-                      }`}
-                    >
-                      <Icon className="w-5 h-5" />
-                      <span className="text-center leading-tight">{tab.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </nav>
-          </div>
-
-          <div className="flex flex-col md:flex-row">
-            {/* Desktop Sidebar */}
-            <div className="hidden md:block md:w-64 border-r border-gray-200 dark:border-slate-700">
-              <nav className="p-4">
-                <div className="space-y-2">
+          <div className="flex flex-col">
+            {/* Mobile Navigation Tabs */}
+            <div className="block md:hidden border-b border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+              <nav className="px-4 py-2">
+                <div className="flex overflow-x-auto space-x-1 pb-2">
                   {tabs.map((tab) => {
                     const Icon = tab.icon;
                     return (
                       <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-left transition-colors text-sm ${
+                        className={`flex-shrink-0 flex flex-col items-center gap-1 px-3 py-2 rounded-lg text-xs transition-colors min-w-[80px] ${
                           activeTab === tab.id
                             ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                            : 'text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700'
+                            : 'text-gray-700 dark:text-slate-300'
                         }`}
                       >
-                        <Icon className="w-5 h-5 flex-shrink-0" />
-                        <span>{tab.label}</span>
+                        <Icon className="w-5 h-5" />
+                        <span className="text-center leading-tight">{tab.label}</span>
                       </button>
                     );
                   })}
@@ -114,9 +92,35 @@ export default function Settings() {
               </nav>
             </div>
 
-            {/* Content */}
-            <div className="flex-1 p-4 md:p-6">
-              {activeTab === 'profile' && (
+            <div className="flex flex-col md:flex-row">
+              {/* Desktop Sidebar */}
+              <div className="hidden md:block md:w-64 border-r border-gray-200 dark:border-slate-700">
+                <nav className="p-4">
+                  <div className="space-y-2">
+                    {tabs.map((tab) => {
+                      const Icon = tab.icon;
+                      return (
+                        <button
+                          key={tab.id}
+                          onClick={() => setActiveTab(tab.id)}
+                          className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-left transition-colors text-sm ${
+                            activeTab === tab.id
+                              ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                              : 'text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700'
+                          }`}
+                        >
+                          <Icon className="w-5 h-5 flex-shrink-0" />
+                          <span>{tab.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </nav>
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 p-4 md:p-6">
+                {activeTab === 'profile' && (
                 <div className="space-y-6">
                   <div>
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
@@ -132,10 +136,10 @@ export default function Settings() {
                           type="text"
                           value={formData.displayName}
                           onChange={(e) => handleInputChange('displayName', e.target.value)}
-                          className="w-full px-4 py-4 text-base border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                          className="w-full px-3 py-3 text-base md:text-sm border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
                           placeholder="Seu nome"
                         />
-                        <p className="text-sm text-gray-500 dark:text-slate-400 mt-2">
+                        <p className="text-xs md:text-sm text-gray-500 dark:text-slate-400 mt-1">
                           Este nome aparecerá no header e sidebar da plataforma
                         </p>
                       </div>
@@ -148,9 +152,9 @@ export default function Settings() {
                           type="email"
                           value={user?.email || ''}
                           disabled
-                          className="w-full px-4 py-4 text-base border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-600 text-gray-500 dark:text-slate-400 cursor-not-allowed"
+                          className="w-full px-3 py-3 text-base md:text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-600 text-gray-500 dark:text-slate-400 cursor-not-allowed"
                         />
-                        <p className="text-sm text-gray-500 dark:text-slate-400 mt-2">
+                        <p className="text-xs md:text-sm text-gray-500 dark:text-slate-400 mt-1">
                           O email não pode ser alterado
                         </p>
                       </div>
@@ -167,7 +171,7 @@ export default function Settings() {
                     </h2>
                     
                     <div className="space-y-4">
-                      <div className="flex items-center justify-between py-4">
+                      <div className="flex items-center justify-between">
                         <div>
                           <h3 className="font-medium text-gray-900 dark:text-white">
                             Notificações de Sinais
@@ -234,8 +238,8 @@ export default function Settings() {
                         )}
                       </div>
 
-                      {/* Outras opções de privacidade */}
-                      <div className="flex items-center justify-between py-4">
+                      {/* Alertas de Login */}
+                      <div className="flex items-center justify-between">
                         <div>
                           <h3 className="font-medium text-gray-900 dark:text-white">
                             Alertas de Login
@@ -255,7 +259,8 @@ export default function Settings() {
                         </label>
                       </div>
 
-                      <div className="flex items-center justify-between py-4">
+                      {/* Compartilhamento de Dados */}
+                      <div className="flex items-center justify-between">
                         <div>
                           <h3 className="font-medium text-gray-900 dark:text-white">
                             Compartilhamento de Dados
@@ -275,7 +280,8 @@ export default function Settings() {
                         </label>
                       </div>
 
-                      <div className="flex items-center justify-between py-4">
+                      {/* Emails de Marketing */}
+                      <div className="flex items-center justify-between">
                         <div>
                           <h3 className="font-medium text-gray-900 dark:text-white">
                             Emails de Marketing
@@ -301,7 +307,7 @@ export default function Settings() {
                           🚨 Zona de Perigo
                         </h3>
                         <div className="space-y-3">
-                          <button className="w-full bg-red-600 text-white py-3 px-4 rounded-lg hover:bg-red-700 transition-colors text-sm font-medium">
+                          <button className="w-full bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors text-sm font-medium">
                             Excluir Conta Permanentemente
                           </button>
                           <p className="text-xs text-red-600 dark:text-red-400">
@@ -319,14 +325,14 @@ export default function Settings() {
                 <button
                   onClick={handleSave}
                   disabled={isSaving}
-                  className="w-full md:w-auto flex items-center justify-center gap-2 px-8 py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg transition-colors font-medium text-base"
+                  className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg transition-colors font-medium"
                 >
                   {isSaving ? (
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   ) : saveSuccess ? (
-                    <Check className="w-5 h-5" />
+                    <Check className="w-4 h-4" />
                   ) : (
-                    <Save className="w-5 h-5" />
+                    <Save className="w-4 h-4" />
                   )}
                   {isSaving ? 'Salvando...' : saveSuccess ? 'Salvo!' : 'Salvar Alterações'}
                 </button>

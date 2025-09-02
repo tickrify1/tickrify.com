@@ -24,8 +24,8 @@ const Dashboard: React.FC = () => {
     totalReturn: 28.7
   };
   
-  const planType = getPlanType();
-  const currentLimit = user?.analyses_limit || planLimits[planType] || 0;
+  const currentPlanType = getPlanType();
+  const currentLimit = user?.analyses_limit || planLimits[currentPlanType] || 0;
   const usageCount = user?.analyses_used || 0;
   const usagePercentage = currentLimit === Infinity ? 0 : (usageCount / currentLimit) * 100;
 
@@ -35,7 +35,7 @@ const Dashboard: React.FC = () => {
       trader: { label: 'Trader', color: 'bg-blue-100 text-blue-700', icon: '🚀' },
       alpha_pro: { label: 'Alpha Pro', color: 'bg-purple-100 text-purple-700', icon: '⭐' }
     };
-    return badges[planType] || badges.free;
+    return badges[currentPlanType] || badges.free;
   };
 
   const planBadge = getPlanBadge();
@@ -65,16 +65,16 @@ const Dashboard: React.FC = () => {
               <div className="px-6 py-3 rounded-lg bg-blue-50 text-blue-700 font-medium flex items-center space-x-2">
                 <span className="text-lg">{planBadge.icon}</span>
                 <span>Plano {planBadge.label}</span>
-                {planType === 'free' && (
+                {currentPlanType === 'free' && (
                   <span className="ml-2 text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full">
                     DEMONSTRAÇÃO
                   </span>
                 )}
-                {hasActiveSubscription() && planType !== 'free' && <Crown className="w-5 h-5" />}
+                {hasActiveSubscription() && currentPlanType !== 'free' && <Crown className="w-5 h-5" />}
               </div>
               
               {/* Botão de Upgrade se for FREE */}
-              {planType === 'free' && (
+              {currentPlanType === 'free' && (
                 <button
                   onClick={() => setShowUpgradeModal(true)}
                   className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition-all transform hover:scale-105 flex items-center space-x-2"
@@ -97,10 +97,10 @@ const Dashboard: React.FC = () => {
                 </div>
                 <div>
                   <h2 className="text-xl font-semibold text-white">
-                    Uso Mensal - Plano {planType.toUpperCase()}
+                    Uso Mensal - Plano {currentPlanType.toUpperCase()}
                   </h2>
                   <p className="text-white/90">
-                    Acompanhe seu consumo de {planType === 'free' ? 'simulações' : 'análises'} IA
+                    Acompanhe seu consumo de {currentPlanType === 'free' ? 'simulações' : 'análises'} IA
                   </p>
                 </div>
               </div>
@@ -113,7 +113,7 @@ const Dashboard: React.FC = () => {
                     <Zap className="w-10 h-10 text-blue-600" />
                   </div>
                   <p className="text-3xl font-bold text-blue-600 mb-2">{usageCount}</p>
-                  <p className="text-gray-600 font-medium">{planType === 'free' ? 'Simulações' : 'Análises'} Utilizadas</p>
+                  <p className="text-gray-600 font-medium">{currentPlanType === 'free' ? 'Simulações' : 'Análises'} Utilizadas</p>
                 </div>
                 
                 <div className="text-center">
@@ -164,26 +164,26 @@ const Dashboard: React.FC = () => {
                   {usagePercentage >= 90 && (
                     <div className="mt-3 p-3 bg-red-50 rounded-lg border border-red-200">
                       <p className="text-sm text-red-700 font-medium mb-2">
-                        🚨 Crítico: Apenas {currentLimit - usageCount} {planType === 'free' ? 'simulações' : 'análises'} restantes!
+                        🚨 Crítico: Apenas {currentLimit - usageCount} {currentPlanType === 'free' ? 'simulações' : 'análises'} restantes!
                       </p>
                       <button
                         onClick={() => setShowUpgradeModal(true)}
                         className="text-red-800 hover:text-red-900 font-medium text-sm underline"
                       >
-                        {planType === 'free' ? 'Assinar plano Trader →' : 'Fazer upgrade agora →'}
+                        {currentPlanType === 'free' ? 'Assinar plano Trader →' : 'Fazer upgrade agora →'}
                       </button>
                     </div>
                   )}
                   {usagePercentage >= 80 && usagePercentage < 90 && (
                     <div className="mt-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
                       <p className="text-sm text-yellow-700 font-medium mb-2">
-                        ⚠️ Atenção: {currentLimit - usageCount} {planType === 'free' ? 'simulações' : 'análises'} restantes
+                        ⚠️ Atenção: {currentLimit - usageCount} {currentPlanType === 'free' ? 'simulações' : 'análises'} restantes
                       </p>
                       <button
                         onClick={() => setShowUpgradeModal(true)}
                         className="text-yellow-800 hover:text-yellow-900 font-medium text-sm underline"
                       >
-                        {planType === 'free' ? 'Assinar plano Trader →' : 'Considere fazer upgrade →'}
+                        {currentPlanType === 'free' ? 'Assinar plano Trader →' : 'Considere fazer upgrade →'}
                       </button>
                     </div>
                   )}
@@ -198,7 +198,7 @@ const Dashboard: React.FC = () => {
                         onClick={() => setShowUpgradeModal(true)}
                         className="text-orange-800 hover:text-orange-900 font-medium text-sm underline"
                       >
-                        {planType === 'free' ? 'Assinar plano Trader →' : 'Ver opções de upgrade →'}
+                        {currentPlanType === 'free' ? 'Assinar plano Trader →' : 'Ver opções de upgrade →'}
                       </button>
                     </div>
                   )}
@@ -215,7 +215,7 @@ const Dashboard: React.FC = () => {
                         onClick={() => setShowUpgradeModal(true)}
                         className="text-red-800 hover:text-red-900 font-medium text-sm underline"
                       >
-                        {planType === 'free' ? 'Assinar plano Trader para análises ilimitadas →' : 'Fazer upgrade para mais análises →'}
+                        {currentPlanType === 'free' ? 'Assinar plano Trader para análises ilimitadas →' : 'Fazer upgrade para mais análises →'}
                       </button>
                     </div>
                   )}
@@ -245,7 +245,7 @@ const Dashboard: React.FC = () => {
             </div>
             <div className="p-8">
               {/* AI Analysis Features for TRADER users */}
-              {planType !== 'free' && (
+              {currentPlanType !== 'free' && (
                 <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
                   <h3 className="font-bold text-gray-900 mb-3 flex items-center">
                     🧠 IA Completa - Indicadores Analisados (TRADER)
@@ -335,10 +335,10 @@ const Dashboard: React.FC = () => {
                   </div>
                   <div>
                     <h2 className="text-xl font-semibold text-white">
-                      {planType === 'free' ? 'Simulações' : 'Análises'} Anteriores
+                      {currentPlanType === 'free' ? 'Simulações' : 'Análises'} Anteriores
                     </h2>
                     <p className="text-white/80">
-                      Histórico das suas {planType === 'free' ? 'simulações' : 'análises'}
+                      Histórico das suas {currentPlanType === 'free' ? 'simulações' : 'análises'}
                     </p>
                   </div>
                 </div>
@@ -363,7 +363,7 @@ const Dashboard: React.FC = () => {
                 </h3>
                 <p className="text-gray-600 mb-8 max-w-2xl mx-auto">
                   Faça upload de um gráfico para receber sua primeira análise com IA. 
-                  {planType === 'free' 
+                  {currentPlanType === 'free' 
                     ? 'Aproveite suas 10 simulações mensais para testar a plataforma!'
                     : 'Aproveite suas 120 análises mensais com IA premium!'
                   }
@@ -402,13 +402,13 @@ const Dashboard: React.FC = () => {
       {/* Aviso Legal */}
       <div className="relative">
         <div className={`rounded-lg border p-6 ${
-          planType === 'free' 
+          currentPlanType === 'free' 
             ? 'bg-orange-50 border-orange-200' 
             : 'bg-yellow-50 border-yellow-200'
         }`}>
           <div className="flex items-start space-x-3">
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-              planType === 'free' 
+              currentPlanType === 'free' 
                 ? 'bg-orange-600' 
                 : 'bg-yellow-600'
             }`}>
@@ -416,21 +416,21 @@ const Dashboard: React.FC = () => {
             </div>
             <div>
               <h3 className={`text-lg font-semibold mb-2 ${
-                planType === 'free' 
+                currentPlanType === 'free' 
                   ? 'text-orange-900' 
                   : 'text-yellow-900'
               }`}>
-                {planType === 'free' 
+                {currentPlanType === 'free' 
                   ? '🆓 Plano FREE - Apenas Demonstração'
                   : 'Importante: Não Aconselhamento Financeiro'
                 }
               </h3>
               <p className={`leading-relaxed ${
-                planType === 'free' 
+                currentPlanType === 'free' 
                   ? 'text-orange-800' 
                   : 'text-yellow-800'
               }`}>
-                {planType === 'free' 
+                {currentPlanType === 'free' 
                   ? (
                     <>
                       <strong>Todas as análises no plano FREE são simulações</strong> criadas apenas para demonstração da interface. 
@@ -454,7 +454,7 @@ const Dashboard: React.FC = () => {
                 }
               </p>
               
-              {planType === 'free' && (
+              {currentPlanType === 'free' && (
                 <div className="mt-4 p-3 bg-white border border-orange-300 rounded-lg">
                   <div className="flex items-center justify-between">
                     <div>
@@ -477,6 +477,19 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
         </div>
+      </div>
+      
+      {/* Botão de teste para modal - TEMPORÁRIO */}
+      <div className="fixed top-20 right-4 z-50">
+        <button
+          onClick={() => {
+            console.log('🧪 Teste: Abrindo modal de planos');
+            setShowUpgradeModal(true);
+          }}
+          className="bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-red-600 text-sm font-bold"
+        >
+          🧪 TESTE MODAL
+        </button>
       </div>
       
       {/* Upgrade Modal */}
