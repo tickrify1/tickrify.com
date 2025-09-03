@@ -1,12 +1,15 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { CheckCircle, ArrowRight, Crown, Zap } from 'lucide-react';
 import { useNavigation } from '../hooks/useNavigation';
 import { useSubscription } from '../hooks/useSubscription';
+import { useAuth } from '../hooks/useAuth';
 import { formatPrice } from '../stripe-config';
 
 export function Success() {
   const { navigateTo } = useNavigation();
   const { refetch, getCurrentPlan, switchPlan } = useSubscription();
+  const { user, refreshUserStats } = useAuth();
+  const [isActivating, setIsActivating] = useState(false);
 
   useEffect(() => {
     // Verificar se há session_id na URL (retorno do Stripe)
@@ -36,18 +39,33 @@ export function Success() {
 
   const verifyPaymentAndActivate = async (sessionId: string) => {
     try {
+      setIsActivating(true);
+      console.log('🔍 Verificando pagamento para sessão:', sessionId);
+      
       // Verificar o status do pagamento no backend
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'}/checkout-session/${sessionId}`);
       if (response.ok) {
         const sessionData = await response.json();
-        console.log('Pagamento verificado:', sessionData);
+        console.log('✅ Pagamento verificado:', sessionData);
         
-        // Ativar o plano Trader
-        await switchPlan('price_1RjU3gB1hl0IoocUWlz842SY');
+        if (sessionData.session?.payment_status === 'paid') {
+          // Ativar o plano Trader no frontend
+          await switchPlan(import.meta.env.VITE_STRIPE_TRADER_PRICE_ID || 'price_1S2cj4B1hl0IoocUfB4Xwgrp');
+          
+          // Atualizar estatísticas do usuário se disponível
+          if (user?.email) {
+            await refreshUserStats();
+          }
+          
+          console.log('✅ Plano Trader ativado com sucesso!');
+        }
+        
         refetch();
       }
     } catch (error) {
-      console.error('Erro ao verificar pagamento:', error);
+      console.error('❌ Erro ao verificar pagamento:', error);
+    } finally {
+      setIsActivating(false);
     }
   };
 
@@ -60,6 +78,12 @@ export function Success() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-blue-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl p-8 text-center">
+        {isActivating && (
+          <div className="mb-6">
+            <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+            <p className="text-sm text-gray-600">Ativando seu plano...</p>
+          </div>
+        )}
         <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
           <CheckCircle className="w-12 h-12 text-emerald-600" />
         </div>

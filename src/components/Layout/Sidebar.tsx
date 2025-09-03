@@ -52,25 +52,25 @@ export function Sidebar({ currentPage, onNavigate, isMobile }: SidebarProps) {
 
   return (
     <div className={`bg-white border-r border-gray-200 flex flex-col h-full transition-all duration-300 ${
-      isCollapsed ? 'w-16' : (isMobile ? 'w-64' : 'w-64')
+      isCollapsed ? 'w-16' : (isMobile ? 'w-72' : 'w-64')
     }`}>
       {/* Header */}
-      <div className="p-4 border-b border-gray-200">
+      <div className={`${isMobile ? 'p-3' : 'p-4'} border-b border-gray-200`}>
         <div className="flex items-center justify-between">
           {!isCollapsed && (
             <div className="flex items-center space-x-3 min-w-0 flex-1">
-              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
                 <BarChart3 className="w-6 h-6 text-white" />
               </div>
               <div className="min-w-0 flex-1">
-                <h1 className="text-xl font-semibold text-gray-900 truncate">Tickrify</h1>
+                <h1 className={`${isMobile ? 'text-lg' : 'text-xl'} font-semibold text-gray-900 truncate`}>Tickrify</h1>
                 <p className="text-sm text-gray-500 truncate">Trading com IA</p>
               </div>
             </div>
           )}
           
           {isCollapsed && (
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center mx-auto">
+            <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center mx-auto">
               <BarChart3 className="w-6 h-6 text-white" />
             </div>
           )}
@@ -88,8 +88,8 @@ export function Sidebar({ currentPage, onNavigate, isMobile }: SidebarProps) {
 
       {/* Plan Badge */}
       {!isCollapsed && (
-        <div className="p-4 border-b border-gray-200">
-          <div className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-blue-50 text-blue-700 font-medium text-sm min-w-0">
+        <div className={`${isMobile ? 'p-3' : 'p-4'} border-b border-gray-200`}>
+          <div className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 text-blue-700 font-medium text-sm min-w-0">
             <span>{planBadge.icon}</span>
             <span className="truncate">Plano {planBadge.label}</span>
             {currentPlan && <Crown className="w-4 h-4" />}
@@ -99,14 +99,14 @@ export function Sidebar({ currentPage, onNavigate, isMobile }: SidebarProps) {
 
       {isCollapsed && (
         <div className="p-4 border-b border-gray-200 flex justify-center">
-          <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+          <div className="w-10 h-10 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg flex items-center justify-center">
             <span className="text-lg">{planBadge.icon}</span>
           </div>
         </div>
       )}
 
       {/* Navigation */}
-      <nav className="flex-1 p-4">
+      <nav className={`flex-1 ${isMobile ? 'p-3' : 'p-4'}`}>
         <div className="space-y-1">
           {menuItems.map((item) => {
             const Icon = item.icon;
@@ -116,9 +116,9 @@ export function Sidebar({ currentPage, onNavigate, isMobile }: SidebarProps) {
               <button
                 key={item.id}
                 onClick={() => onNavigate(item.id)}
-                className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} px-3 py-3 rounded-lg text-sm font-medium transition-colors ${
                   isActive
-                    ? 'bg-blue-50 text-blue-600'
+                    ? 'bg-gradient-to-r from-blue-50 to-purple-50 text-blue-600 border border-blue-200'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                 }`}
                 title={isCollapsed ? item.label : undefined}
@@ -132,7 +132,7 @@ export function Sidebar({ currentPage, onNavigate, isMobile }: SidebarProps) {
       </nav>
 
       {/* User Section */}
-      <div className="p-4 border-t border-gray-200">
+      <div className={`${isMobile ? 'p-3' : 'p-4'} border-t border-gray-200`}>
         {!isCollapsed ? (
           <>
             <div className="flex items-center space-x-3 mb-3 min-w-0">

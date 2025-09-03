@@ -15,11 +15,39 @@ import { useSubscription } from './hooks/useSubscription';
 
 function App() {
   try {
+    console.log('🏁 App iniciando...');
+    
+    console.log('🔌 Carregando hooks...');
     const { currentPage, navigateTo } = useNavigation();
+    console.log('✅ useNavigation loaded:', currentPage);
+    
     const { isMobile } = useDeviceDetection();
+    console.log('✅ useDeviceDetection loaded:', { isMobile });
+    
     const [sidebarOpen, setSidebarOpen] = useState(false);
-    const { isAuthenticated, isLoading } = useAuth();
+    console.log('✅ useState initialized');
+    
+    const { isAuthenticated, isLoading, user } = useAuth();
+    console.log('✅ useAuth loaded:', { isAuthenticated, isLoading, user: user?.id });
+    
     const { switchPlan, getPlanType } = useSubscription();
+    console.log('✅ useSubscription loaded');
+
+    console.log('Hooks carregados com sucesso:', {
+      currentPage,
+      isMobile,
+      isAuthenticated,
+      isLoading,
+      user: isAuthenticated ? 'authenticated' : 'not authenticated'
+    });
+
+    // Debug do estado de autenticação
+    console.log('🔍 App: Estado detalhado de autenticação:', {
+      isAuthenticated,
+      isLoading,
+      userExists: !!isAuthenticated,
+      timestamp: new Date().toISOString()
+    });
 
     // Show loading spinner while checking auth
     if (isLoading) {
@@ -35,6 +63,8 @@ function App() {
 
     // Renderizar páginas baseado na navegação
     const renderCurrentPage = () => {
+      console.log('🎨 Renderizando página:', currentPage);
+      
       switch (currentPage) {
         case 'dashboard':
           return <Dashboard />;
@@ -53,12 +83,15 @@ function App() {
 
     // Always show landing page when not authenticated
     if (!isAuthenticated) {
+      console.log('🚪 Not authenticated, showing Landing page');
       return (
         <MobileOptimizer>
           <Landing />
         </MobileOptimizer>
       );
     }
+
+    console.log('✅ Authenticated, showing main app');
 
     return (
       <MobileOptimizer>
@@ -95,8 +128,8 @@ function App() {
           }`}>
             <Header
               onMenuClick={() => setSidebarOpen(!sidebarOpen)}
-              isMobile={isMobile}
-              onPlanSwitch={switchPlan}
+              isAuthenticated={isAuthenticated}
+              user={user}
               currentPlanType={getPlanType()}
             />
 

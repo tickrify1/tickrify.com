@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff, LogIn, Loader2 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
+import { useValidation } from '../../utils/validation';
 
 interface LoginFormProps {
   onSwitchToRegister: () => void;
@@ -13,6 +14,7 @@ export function LoginForm({ onSwitchToRegister, onClose }: LoginFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const { login, isLoading } = useAuth();
+  const { validateLoginForm, checkRateLimit } = useValidation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,8 +22,17 @@ export function LoginForm({ onSwitchToRegister, onClose }: LoginFormProps) {
 
     console.log('🔑 LoginForm: Iniciando processo de login...', { email });
 
-    if (!email || !password) {
-      setError('Por favor, preencha todos os campos');
+    // Validação de entrada
+    const validation = validateLoginForm(email, password);
+    if (!validation.isValid) {
+      setError(validation.message || 'Dados inválidos');
+      return;
+    }
+
+    // Rate limiting
+    const rateLimitKey = `login-${email}`;
+    if (!checkRateLimit(rateLimitKey, 3, 300000)) { // 3 tentativas por 5 minutos
+      setError('Muitas tentativas de login. Tente novamente em 5 minutos.');
       return;
     }
 

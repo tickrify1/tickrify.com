@@ -48,8 +48,17 @@ export function useAuth() {
     try {
       console.log('🔐 Tentando login para:', email);
       
+      // Detectar ambiente
+      const isProduction = window.location.hostname !== 'localhost';
+      const backendUrl = isProduction 
+        ? import.meta.env.VITE_BACKEND_URL || 'https://seu-backend.vercel.app'
+        : import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+      
+      console.log('🌐 Ambiente:', isProduction ? 'PRODUÇÃO' : 'DESENVOLVIMENTO');
+      console.log('🔗 Backend URL:', backendUrl);
+      
       // Chamar backend para login/criação de usuário
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'}/user/login`, {
+      const response = await fetch(`${backendUrl}/user/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -176,7 +185,13 @@ export function useAuth() {
     try {
       console.log('🔄 Atualizando estatísticas do usuário...');
       
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'}/user/stats/${user.email}`, {
+      // Detectar ambiente
+      const isProduction = window.location.hostname !== 'localhost';
+      const backendUrl = isProduction 
+        ? import.meta.env.VITE_BACKEND_URL || 'https://seu-backend.vercel.app'
+        : import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+      
+      const response = await fetch(`${backendUrl}/user/stats/${user.email}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

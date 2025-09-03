@@ -61,25 +61,53 @@ export function Landing() {
 
   if (showAuth) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
-          <div className="bg-white rounded-2xl shadow-2xl p-8">
-            {authMode === 'login' ? (
-              <LoginForm 
-                onSwitchToRegister={switchAuthMode}
-                onClose={handleCloseAuth}
-              />
-            ) : (
-              <RegisterForm 
-                onSwitchToLogin={switchAuthMode}
-                onClose={handleCloseAuth}
-              />
-            )}
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[70] auth-modal">
+        <div className="w-full max-w-md max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 md:p-8 relative">
+            {/* Botão X para fechar */}
+            <button
+              onClick={handleCloseAuth}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors z-10"
+            >
+              <X className="w-6 h-6" />
+            </button>
+
+            {/* Header com logo */}
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <BarChart3 className="w-8 h-8 text-white" />
+              </div>
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                {authMode === 'login' ? 'Entrar no Tickrify' : 'Criar Conta'}
+              </h1>
+              <p className="text-gray-600">
+                {authMode === 'login' 
+                  ? 'Acesse sua conta para continuar' 
+                  : 'Comece sua jornada de trading'
+                }
+              </p>
+            </div>
+
+            {/* Form Container */}
+            <div className="auth-form-container">
+              {authMode === 'login' ? (
+                <LoginForm 
+                  onSwitchToRegister={switchAuthMode}
+                  onClose={handleCloseAuth}
+                />
+              ) : (
+                <RegisterForm 
+                  onSwitchToLogin={switchAuthMode}
+                  onClose={handleCloseAuth}
+                />
+              )}
+            </div>
             
-            <div className="mt-6 text-center">
+            {/* Footer */}
+            <div className="mt-6 text-center border-t border-gray-200 pt-6">
               <button
                 onClick={handleCloseAuth}
-                className="text-gray-500 hover:text-gray-700 text-sm"
+                className="text-gray-500 hover:text-gray-700 text-sm transition-colors"
               >
                 ← Voltar para a página inicial
               </button>

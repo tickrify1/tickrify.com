@@ -782,17 +782,39 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# Configurar CORS para desenvolvimento e Go Live
-allowed_origins = [
-    "http://localhost:5173",      # Vite dev
-    "http://localhost:5174",      # Vite backup
-    "http://localhost:5500",      # Go Live padrão
-    "http://127.0.0.1:5500",      # Go Live alternativo
-    "http://localhost:3000",      # React/Next.js
-    "http://localhost:8080",      # Vue/outros
-    "http://localhost:4200",      # Angular
-    "*"                           # Permitir todos (apenas para desenvolvimento)
-]
+# Configurar CORS dinâmico para desenvolvimento e produção
+def get_allowed_origins():
+    """Configurar origens CORS dinamicamente baseado no ambiente"""
+    # Origens de desenvolvimento
+    dev_origins = [
+        "http://localhost:5173",      # Vite dev
+        "http://localhost:5174",      # Vite backup
+        "http://localhost:5500",      # Go Live padrão
+        "http://127.0.0.1:5500",      # Go Live alternativo
+        "http://localhost:3000",      # React/Next.js
+        "http://localhost:8080",      # Vue/outros
+        "http://localhost:4200",      # Angular
+    ]
+    
+    # Origens de produção (adicionar conforme necessário)
+    prod_origins = [
+        "https://tickrify.vercel.app",
+        "https://tickrify-com.vercel.app",
+        "https://www.tickrify.com",
+        "https://tickrify.com",
+    ]
+    
+    # Verificar se está em produção
+    is_production = os.getenv("ENVIRONMENT") == "production"
+    
+    if is_production:
+        logger.info("🌐 Modo PRODUÇÃO: Usando origens específicas")
+        return prod_origins + ["http://localhost:5173"]  # Permitir teste local
+    else:
+        logger.info("🛠️ Modo DESENVOLVIMENTO: Permitindo todas as origens")
+        return dev_origins + ["*"]
+
+allowed_origins = get_allowed_origins()
 
 app.add_middleware(
     CORSMiddleware,
@@ -1252,6 +1274,36 @@ async def create_checkout_session(request: StripeCheckoutRequest):
             detail=f"Erro interno: {str(e)}"
         )
 
+@app.get("/checkout-session/{session_id}")
+async def get_checkout_session(session_id: str):
+    """Verificar status de uma sessão de checkout"""
+    try:
+        if not STRIPE_SECRET_KEY:
+            raise HTTPException(
+                status_code=503,
+                detail="Stripe não configurado"
+            )
+        
+        session = stripe.checkout.Session.retrieve(session_id)
+        
+        return {
+            "success": True,
+            "session": {
+                "id": session.id,
+                "payment_status": session.payment_status,
+                "status": session.status,
+                "customer_email": session.customer_details.email if session.customer_details else None,
+                "metadata": session.metadata
+            }
+        }
+        
+    except stripe.error.StripeError as e:
+        logger.error(f"Erro do Stripe ao buscar sessão: {e}")
+        raise HTTPException(status_code=400, detail=f"Erro do Stripe: {str(e)}")
+    except Exception as e:
+        logger.error(f"Erro ao buscar sessão: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/stripe-webhook")
 async def stripe_webhook(request: Request):
     """Webhook do Stripe para eventos de pagamento"""
@@ -1482,7 +1534,10 @@ async def get_user_stats(email: str):
         if "error" in stats:
             raise HTTPException(status_code=404, detail=stats["error"])
         
-        return stats
+        return {
+            "success": True,
+            "user": stats
+        }
         
     except HTTPException:
         raise

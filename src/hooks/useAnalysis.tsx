@@ -5,6 +5,7 @@ import { usePerformance } from './usePerformance';
 import { analyzeChartWithAI } from '../services/openai';
 import { analyzeTickrify, convertTickrifyToFrontend, checkBackendHealth } from '../services/backendApi';
 import { useSubscription } from './useSubscription';
+import { useAuth } from './useAuth';
 
 interface MonthlyUsage {
   count: number;
@@ -28,8 +29,9 @@ export function useAnalysis() {
     getInitialMonthlyUsage()
   );
   
-  const { updatePerformanceFromAnalysis } = usePerformance();
+  const { refreshPerformance } = usePerformance();
   const { getPlanType, planLimits } = useSubscription();
+  const { user, refreshUserStats } = useAuth();
 
   // Reset monthly usage if new month
   useEffect(() => {
@@ -47,8 +49,14 @@ export function useAnalysis() {
 
   const canAnalyze = (): boolean => {
     const planType = getPlanType();
-    const limit = planLimits[planType];
     
+    // Se usuario está logado, usar limites do backend
+    if (user) {
+      return user.remaining_analyses > 0 && !user.blocked;
+    }
+    
+    // Fallback para limites locais (para compatibilidade)
+    const limit = planLimits[planType];
     if (limit === Infinity) return true;
     return monthlyUsage.count < limit;
   };
@@ -58,8 +66,11 @@ export function useAnalysis() {
     
     // Check usage limits
     if (!canAnalyze()) {
-      console.log('❌ [ANALYSIS] Limite mensal esgotado');
-      throw new Error(`Limite mensal esgotado! Você já usou ${monthlyUsage.count} análises este mês. Faça upgrade para continuar.`);
+      console.log('❌ [ANALYSIS] Limite esgotado');
+      const message = user ? 
+        `Limite de análises esgotado! Você já usou ${user.analyses_used}/${user.analyses_limit} análises. Faça upgrade para continuar.` :
+        `Limite mensal esgotado! Você já usou ${monthlyUsage.count} análises este mês. Faça upgrade para continuar.`;
+      throw new Error(message);
     }
 
     setIsAnalyzing(true);
@@ -204,15 +215,36 @@ export function useAnalysis() {
         aiResponse
       });
       
-      // Update monthly usage
-      setMonthlyUsage(prev => ({
-        ...prev,
-        count: prev.count + 1
-      }));
-      console.log('📊 [ANALYSIS] Monthly usage atualizado');
+      // Registrar uso no backend se usuário estiver logado
+      if (user?.email) {
+        try {
+          await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'}/user/use-analysis/${user.email}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          });
+          
+          // Atualizar estatísticas do usuário
+          await refreshUserStats();
+          console.log('📊 [ANALYSIS] Uso registrado no backend');
+        } catch (error) {
+          console.warn('⚠️ Erro ao registrar análise no backend:', error);
+          // Fallback para contagem local
+          setMonthlyUsage(prev => ({
+            ...prev,
+            count: prev.count + 1
+          }));
+        }
+      } else {
+        // Update monthly usage local se não estiver logado
+        setMonthlyUsage(prev => ({
+          ...prev,
+          count: prev.count + 1
+        }));
+        console.log('📊 [ANALYSIS] Monthly usage local atualizado');
+      }
       
       // Update performance metrics
-      updatePerformanceFromAnalysis(analysis);
+      refreshPerformance();
       console.log('📈 [ANALYSIS] Performance metrics atualizados');
       
       // Generate signal based on analysis with real data

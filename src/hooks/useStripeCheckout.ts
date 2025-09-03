@@ -17,13 +17,53 @@ export interface CheckoutResult {
 export const useStripeCheckout = () => {
   const [isLoading, setIsLoading] = useState(false);
 
-  const redirectToCheckout = async (priceId: string): Promise<CheckoutResult> => {
+  // Detectar ambiente automaticamente
+  const getEnvironmentConfig = () => {
+    const hostname = window.location.hostname;
+    const isLocal = hostname === 'localhost' || hostname === '127.0.0.1';
+    const isVercel = hostname.includes('vercel.app') || hostname.includes('.app');
+    const isCustomDomain = !isLocal && !isVercel;
+    
+    const baseUrl = window.location.origin;
+    
+    // Priorizar variáveis de ambiente para backend URL
+    let backendUrl = import.meta.env.VITE_BACKEND_URL;
+    
+    if (!backendUrl || backendUrl === 'http://localhost:8000') {
+      if (isLocal) {
+        backendUrl = 'http://localhost:8000';
+      } else {
+        // Em produção, inferir a URL do backend baseado no hostname
+        backendUrl = `https://api.${hostname}` || 'https://seu-backend.vercel.app';
+      }
+    }
+    
+    return { 
+      baseUrl, 
+      backendUrl, 
+      isProduction: !isLocal,
+      isLocal,
+      isVercel,
+      isCustomDomain,
+      hostname 
+    };
+  };
+
+  const redirectToCheckout = async (priceId: string, userEmail?: string): Promise<CheckoutResult> => {
     setIsLoading(true);
     
     try {
+      const { baseUrl, backendUrl, isProduction, isLocal, hostname } = getEnvironmentConfig();
+      
       console.log('🚀 Iniciando checkout para priceId:', priceId);
-      console.log('🔑 STRIPE_PK:', STRIPE_PK);
-      console.log('🔗 Backend URL:', import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000');
+      console.log('🔑 STRIPE_PK:', STRIPE_PK ? 'Configurado' : 'Não configurado');
+      console.log('🔗 Backend URL:', backendUrl);
+      console.log('🌐 Ambiente:', {
+        hostname,
+        isLocal,
+        isProduction,
+        baseUrl
+      });
       
       // Verificar se o Stripe está configurado
       const isStripeConfigured = STRIPE_PK && 
@@ -37,7 +77,7 @@ export const useStripeCheckout = () => {
         console.warn('⚠️ Stripe não configurado - usando endpoint de demo');
         
         // Usar endpoint de demo
-        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'}/stripe/create-checkout-demo`, {
+        const response = await fetch(`${backendUrl}/stripe/create-checkout-demo`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -45,20 +85,25 @@ export const useStripeCheckout = () => {
           body: JSON.stringify({
             priceId,
             mode: 'subscription',
-            successUrl: `${window.location.origin}/success?session_id={CHECKOUT_SESSION_ID}`,
-            cancelUrl: `${window.location.origin}/cancel`,
+            successUrl: `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
+            cancelUrl: `${baseUrl}/cancel`,
+            user_email: userEmail,
           }),
         });
 
         if (!response.ok) {
-          throw new Error('Erro ao criar sessão de demo');
+          const errorText = await response.text();
+          console.error('❌ Erro na resposta do demo:', errorText);
+          throw new Error(`Erro ao criar sessão de demo: ${response.status}`);
         }
 
         const demoResult = await response.json();
         console.log('✅ Demo checkout criado:', demoResult);
         
         // Simular redirecionamento em ambiente de desenvolvimento
-        alert(`� DEMO CHECKOUT\n\nEm produção, você seria redirecionado para:\n${demoResult.url}\n\nPara configurar o Stripe real:\n1. Configure VITE_STRIPE_PUBLISHABLE_KEY no .env\n2. Configure o priceId real no stripe-config.ts`);
+        if (isLocal) {
+          alert(`🎯 DEMO CHECKOUT\n\nEm produção, você seria redirecionado para:\n${demoResult.url}\n\nPara configurar o Stripe real:\n1. Configure VITE_STRIPE_PUBLISHABLE_KEY no .env\n2. Configure o priceId real no stripe-config.ts`);
+        }
         
         // Simular sucesso após configuração
         setTimeout(() => {
@@ -77,26 +122,42 @@ export const useStripeCheckout = () => {
       }
 
       console.log('🌐 Chamando backend para criar sessão...');
-      // Chamar backend para criar sessão real
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'}/create-checkout-session`, {
+      
+      // Chamada com timeout e retry
+      const response = await fetch(`${backendUrl}/create-checkout-session`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
         body: JSON.stringify({
           priceId,
           mode: 'subscription',
-          successUrl: `${window.location.origin}/success?session_id={CHECKOUT_SESSION_ID}`,
-          cancelUrl: `${window.location.origin}/cancel`,
+          successUrl: `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
+          cancelUrl: `${baseUrl}/cancel`,
+          user_email: userEmail,
         }),
       });
 
       console.log('📡 Response status:', response.status);
 
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error('❌ Erro na resposta:', errorData);
-        throw new Error(errorData.detail || 'Erro ao criar sessão de checkout');
+        const errorText = await response.text();
+        console.error('❌ Erro na resposta:', { 
+          status: response.status, 
+          statusText: response.statusText, 
+          body: errorText 
+        });
+        
+        // Tentar parsear como JSON se possível
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { detail: errorText || 'Erro no servidor' };
+        }
+        
+        throw new Error(errorData.detail || `Erro ${response.status}: ${response.statusText}`);
       }
 
       const { sessionId, url } = await response.json();
@@ -127,7 +188,7 @@ export const useStripeCheckout = () => {
     }
   };
 
-  const createTraderCheckout = async (): Promise<CheckoutResult> => {
+  const createTraderCheckout = async (userEmail?: string): Promise<CheckoutResult> => {
     // Buscar o produto Trader configurado
     const traderProduct = getProductById('prod_trader_real');
     if (!traderProduct) {
@@ -137,7 +198,7 @@ export const useStripeCheckout = () => {
       };
     }
     
-    return redirectToCheckout(traderProduct.priceId);
+    return redirectToCheckout(traderProduct.priceId, userEmail);
   };
 
   return {

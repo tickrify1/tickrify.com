@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { X, Crown, Check } from 'lucide-react';
 import { useSubscription } from '../../hooks/useSubscription';
 import { useStripeCheckout } from '../../hooks/useStripeCheckout';
+import { useAuth } from '../../hooks/useAuth';
 
 interface SubscriptionModalProps {
   isOpen: boolean;
@@ -12,6 +13,7 @@ export function SubscriptionModal({ isOpen, onClose }: SubscriptionModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { getPlanType } = useSubscription();
   const { createTraderCheckout } = useStripeCheckout();
+  const { user } = useAuth();
 
   const currentPlanType = getPlanType();
 
@@ -23,7 +25,7 @@ export function SubscriptionModal({ isOpen, onClose }: SubscriptionModalProps) {
     try {
       console.log('🚀 Iniciando upgrade para plano Trader...');
       
-      const result = await createTraderCheckout();
+      const result = await createTraderCheckout(user?.email);
       
       if (result.success) {
         console.log('✅ Redirecionando para checkout do Stripe...');
@@ -40,15 +42,19 @@ export function SubscriptionModal({ isOpen, onClose }: SubscriptionModalProps) {
     }
   };
 
+  const isCurrentlyTrader = currentPlanType === 'trader';
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-200 p-6 rounded-t-2xl">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 md:p-4">
+      <div className="bg-white rounded-xl md:rounded-2xl max-w-4xl w-full max-h-[95vh] md:max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white border-b border-gray-200 p-4 md:p-6 rounded-t-xl md:rounded-t-2xl">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">Escolha seu Plano</h2>
-              <p className="text-gray-600 mt-1">
-                Você está atualmente no plano <span className="font-semibold text-blue-600">FREE</span>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-900">Escolha seu Plano</h2>
+              <p className="text-sm md:text-base text-gray-600 mt-1">
+                Você está atualmente no plano <span className="font-semibold text-blue-600">
+                  {isCurrentlyTrader ? 'TRADER' : 'FREE'}
+                </span>
               </p>
             </div>
             <button
@@ -56,31 +62,33 @@ export function SubscriptionModal({ isOpen, onClose }: SubscriptionModalProps) {
               className="p-2 hover:bg-gray-100 rounded-full transition-colors"
               disabled={isLoading}
             >
-              <X className="w-6 h-6" />
+              <X className="w-5 h-5 md:w-6 md:h-6" />
             </button>
           </div>
         </div>
 
-        <div className="p-6">
-          <div className="grid md:grid-cols-2 gap-6">
+        <div className="p-4 md:p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             
-            {/* Plano FREE - Atual */}
-            <div className="border border-gray-200 rounded-xl p-6 relative">
-              <div className="absolute top-4 right-4">
-                <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full">
-                  PLANO ATUAL
-                </span>
-              </div>
+            {/* Plano FREE */}
+            <div className="border border-gray-200 rounded-lg md:rounded-xl p-4 md:p-6 relative">
+              {!isCurrentlyTrader && (
+                <div className="absolute top-3 right-3 md:top-4 md:right-4">
+                  <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full">
+                    PLANO ATUAL
+                  </span>
+                </div>
+              )}
               
               <div className="mb-4">
-                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-2">
                   🆓 FREE (Demonstração)
                 </h3>
-                <div className="text-3xl font-bold text-gray-900 mb-1">
+                <div className="text-2xl md:text-3xl font-bold text-gray-900 mb-1">
                   R$ 0,00
-                  <span className="text-base font-normal text-gray-500">/mês</span>
+                  <span className="text-sm md:text-base font-normal text-gray-500">/mês</span>
                 </div>
-                <p className="text-sm text-orange-600 font-medium">
+                <p className="text-xs md:text-sm text-orange-600 font-medium">
                   ⚠️ Apenas para demonstração - Análises simuladas
                 </p>
               </div>
@@ -105,19 +113,27 @@ export function SubscriptionModal({ isOpen, onClose }: SubscriptionModalProps) {
               </div>
 
               <button
-                disabled
-                className="w-full bg-gray-100 text-gray-500 py-3 rounded-lg font-semibold cursor-not-allowed"
+                disabled={!isCurrentlyTrader}
+                className={`w-full py-3 rounded-lg font-semibold ${
+                  !isCurrentlyTrader 
+                    ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
+                    : 'bg-green-100 text-green-800 cursor-not-allowed'
+                }`}
               >
-                Plano Atual
+                {!isCurrentlyTrader ? 'Plano Atual' : 'Plano Anterior'}
               </button>
             </div>
 
             {/* Plano TRADER - Upgrade */}
             <div className="border border-blue-500 rounded-xl p-6 relative bg-gradient-to-br from-blue-50 to-indigo-50">
               <div className="absolute top-4 right-4">
-                <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded-full flex items-center">
+                <span className={`text-xs font-medium px-2 py-1 rounded-full flex items-center ${
+                  isCurrentlyTrader 
+                    ? 'bg-green-100 text-green-800'
+                    : 'bg-blue-100 text-blue-800'
+                }`}>
                   <Crown className="w-3 h-3 mr-1" />
-                  RECOMENDADO
+                  {isCurrentlyTrader ? 'PLANO ATUAL' : 'RECOMENDADO'}
                 </span>
               </div>
               
@@ -163,10 +179,19 @@ export function SubscriptionModal({ isOpen, onClose }: SubscriptionModalProps) {
 
               <button
                 onClick={handleUpgradeToTrader}
-                disabled={isLoading}
-                className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                disabled={isLoading || isCurrentlyTrader}
+                className={`w-full py-3 rounded-lg font-semibold transition-colors flex items-center justify-center ${
+                  isCurrentlyTrader 
+                    ? 'bg-green-100 text-green-800 cursor-not-allowed'
+                    : 'bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed'
+                }`}
               >
-                {isLoading ? (
+                {isCurrentlyTrader ? (
+                  <>
+                    <Check className="w-4 h-4 mr-2" />
+                    Plano Ativo
+                  </>
+                ) : isLoading ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
                     Processando...
