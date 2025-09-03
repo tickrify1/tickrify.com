@@ -151,8 +151,16 @@
                 if (window.location.hostname === 'localhost') {
                     backendUrl = 'http://localhost:8000';
                 } else {
-                    // Em produção, tentar diferentes URLs possíveis
-                    backendUrl = 'https://seu-backend.vercel.app'; // SUBSTITUA PELA URL REAL DO SEU BACKEND
+                    // Em produção, tentar diferentes URLs possíveis do backend
+                    const possibleBackends = [
+                        'https://tickrify-backend-production.up.railway.app',
+                        'https://tickrify-backend.onrender.com',
+                        'https://tickrify-backend.vercel.app',
+                        'https://api.tickrify.com'
+                    ];
+                    
+                    // Por enquanto, usar a primeira URL - você pode atualizar conforme necessário
+                    backendUrl = possibleBackends[0];
                 }
                 
                 log(`Tentando conectar em: ${backendUrl}`);

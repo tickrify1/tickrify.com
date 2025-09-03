@@ -1,0 +1,17 @@
+version: "3"
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    port: 8000
+    environment:
+      - ENVIRONMENT=production
+      - STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY
+    healthcheck:
+      command: ["python", "-c", "import requests; requests.get('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+      start_period: 40s
