@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, Crown, Check } from 'lucide-react';
 import { useStripeCheckout } from '../../hooks/useStripeCheckout';
+import { useAuth } from '../../hooks/useAuth';
 
 interface SubscriptionModalProps {
   isOpen: boolean;
@@ -10,6 +11,7 @@ interface SubscriptionModalProps {
 export function SubscriptionModal({ isOpen, onClose }: SubscriptionModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { createTraderCheckout } = useStripeCheckout();
+  const { user } = useAuth();
 
   if (!isOpen) return null;
 
@@ -55,8 +57,14 @@ export function SubscriptionModal({ isOpen, onClose }: SubscriptionModalProps) {
                 Escolha seu Plano
               </h2>
               <p className="text-sm md:text-base text-gray-600 plan-subtitle">
-                Você está atualmente no plano{' '}
-                <span className="font-semibold text-blue-600">FREE</span>
+                {user ? (
+                  <>
+                    Você está atualmente no plano{' '}
+                    <span className="font-semibold text-blue-600">{user.plan}</span>
+                  </>
+                ) : (
+                  'Faça login para ver seu plano atual ou escolha um plano para começar'
+                )}
               </p>
             </div>
             <button
@@ -72,15 +80,37 @@ export function SubscriptionModal({ isOpen, onClose }: SubscriptionModalProps) {
         </div>
 
         <div className="p-4 md:p-6 space-y-6">
+          {!user && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-start">
+                <div className="flex-shrink-0">
+                  <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+                    <span className="text-blue-600 text-sm font-semibold">i</span>
+                  </div>
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-blue-800">
+                    Faça login para gerenciar sua assinatura
+                  </h3>
+                  <p className="text-sm text-blue-700 mt-1">
+                    Para ver seu plano atual e fazer upgrades, é necessário fazer login ou criar uma conta primeiro.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
             
             {/* Plano FREE - Atual */}
             <div className="border border-gray-200 rounded-xl p-4 md:p-6 relative bg-gray-50 plan-card">
-              <div className="absolute top-3 right-3 md:top-4 md:right-4">
-                <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full plan-badge">
-                  PLANO ATUAL
-                </span>
-              </div>
+              {user?.plan === 'FREE' && (
+                <div className="absolute top-3 right-3 md:top-4 md:right-4">
+                  <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full plan-badge">
+                    PLANO ATUAL
+                  </span>
+                </div>
+              )}
               
               <div className="mb-6 pr-20">
                 <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-3 plan-title">
@@ -129,10 +159,16 @@ export function SubscriptionModal({ isOpen, onClose }: SubscriptionModalProps) {
             {/* Plano TRADER - Upgrade */}
             <div className="border-2 border-blue-500 rounded-xl p-4 md:p-6 relative bg-gradient-to-br from-blue-50 to-indigo-50 plan-card">
               <div className="absolute top-3 right-3 md:top-4 md:right-4">
-                <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded-full flex items-center plan-badge">
-                  <Crown className="w-3 h-3 mr-1" />
-                  RECOMENDADO
-                </span>
+                {user?.plan === 'TRADER' ? (
+                  <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full plan-badge">
+                    PLANO ATUAL
+                  </span>
+                ) : (
+                  <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded-full flex items-center plan-badge">
+                    <Crown className="w-3 h-3 mr-1" />
+                    RECOMENDADO
+                  </span>
+                )}
               </div>
               
               <div className="mb-6 pr-24">
@@ -181,10 +217,19 @@ export function SubscriptionModal({ isOpen, onClose }: SubscriptionModalProps) {
 
               <button
                 onClick={handleUpgradeToTrader}
-                disabled={isLoading}
-                className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center plan-button"
+                disabled={isLoading || (user?.plan === 'TRADER')}
+                className={`w-full py-3 rounded-lg font-semibold transition-colors flex items-center justify-center plan-button ${
+                  user?.plan === 'TRADER' 
+                    ? 'bg-green-600 text-white cursor-default' 
+                    : 'bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed'
+                }`}
               >
-                {isLoading ? (
+                {user?.plan === 'TRADER' ? (
+                  <>
+                    <Check className="w-4 h-4 mr-2" />
+                    Plano Ativo
+                  </>
+                ) : isLoading ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
                     Processando...
