@@ -455,6 +455,39 @@ body {
   -webkit-backdrop-filter: blur(8px);
 }
 
+/* Ensuring close button is always visible and accessible */
+.plan-close-button {
+  position: relative;
+  z-index: 61;
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  border-radius: 50% !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s ease !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  cursor: pointer !important;
+}
+
+.plan-close-button:hover {
+  background-color: rgba(0, 0, 0, 0.1) !important;
+  transform: scale(1.1) !important;
+}
+
+.plan-close-button:active {
+  transform: scale(0.95) !important;
+}
+
+@media (max-width: 768px) {
+  .plan-close-button {
+    min-width: 44px !important;
+    min-height: 44px !important;
+    margin-top: -4px !important;
+  }
+}
+
 .plan-card {
   transition: all 0.3s ease;
   position: relative;

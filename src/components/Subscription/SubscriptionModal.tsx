@@ -36,8 +36,17 @@ export function SubscriptionModal({ isOpen, onClose }: SubscriptionModalProps) {
     }
   };
 
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget && !isLoading) {
+      onClose();
+    }
+  };
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-2 md:p-4 plan-modal">
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-2 md:p-4 plan-modal"
+      onClick={handleBackdropClick}
+    >
       <div className="bg-white rounded-xl md:rounded-2xl max-w-5xl w-full max-h-[95vh] md:max-h-[90vh] overflow-y-auto plan-modal-content">
         <div className="sticky top-0 bg-white border-b border-gray-200 p-4 md:p-6 rounded-t-xl md:rounded-t-2xl plan-header">
           <div className="flex items-start justify-between">
@@ -52,11 +61,12 @@ export function SubscriptionModal({ isOpen, onClose }: SubscriptionModalProps) {
             </div>
             <button
               onClick={onClose}
-              className="flex-shrink-0 p-2 hover:bg-gray-100 rounded-full transition-colors ml-2 plan-close-button"
+              className="flex-shrink-0 p-2 hover:bg-gray-100 rounded-full transition-colors ml-2 plan-close-button bg-white border border-gray-300 shadow-sm"
               disabled={isLoading}
               aria-label="Fechar modal"
+              title="Fechar"
             >
-              <X className="w-5 h-5 md:w-6 md:h-6 text-gray-500" />
+              <X className="w-5 h-5 md:w-6 md:h-6 text-gray-600" />
             </button>
           </div>
         </div>
