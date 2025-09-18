@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teste do Contador de Uso Mensal</title>
+</head>
+<body>
+    <h1>Teste do Contador de Uso Mensal</h1>
+    <p>1. Acesse http://localhost:5173</p>
+    <p>2. Vá para a página de análise de gráficos</p>
+    <p>3. Faça upload de uma imagem</p>
+    <p>4. Verifique os logs no console do navegador (F12)</p>
+    <p>5. Verifique o contador no dashboard</p>
+    
+    <h2>Logs esperados:</h2>
+    <pre>
+🎯 INICIANDO analyzeChart - Uso mensal ANTES da análise: {count: X, month: Y, year: Z}
+📊 ANTES do incremento - Uso mensal atual: {count: X, month: Y, year: Z}
+📈 INCREMENTANDO uso mensal: X -> X+1
+✅ Comando de incremento enviado - aguardando state update...
+    </pre>
+    
+    <h2>Como simular análise via curl:</h2>
+    <pre>
+curl -X POST "http://localhost:8000/api/analyze-chart" \
+-H "Content-Type: application/json" \
+-d '{
+  "image_base64": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==",
+  "user_id": "test_user"
+}'
+    </pre>
+</body>
+</html>
