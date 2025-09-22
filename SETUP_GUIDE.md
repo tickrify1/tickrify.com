@@ -98,31 +98,36 @@ Os produtos já estão configurados no código com IDs reais:
 
 #### Criar arquivo .env na raiz do projeto:
 ```env
-# Supabase Configuration (OBRIGATÓRIO)
+# Backend/Server
+PORT=8001
+HOST=0.0.0.0
+ENVIRONMENT=development
+
+# Supabase (OBRIGATÓRIO)
+SUPABASE_URL=https://[seu-projeto].supabase.co
+SUPABASE_SERVICE_KEY=[sua-service-role]
+SUPABASE_JWT_SECRET=[jwt-secret-do-projeto]
+
+# Stripe (OBRIGATÓRIO para pagamentos)
+STRIPE_PUBLISHABLE_KEY=pk_test_[sua-chave-publica]
+STRIPE_SECRET_KEY=sk_test_[sua-chave-secreta]
+STRIPE_WEBHOOK_SECRET=whsec_[seu-signing-secret]
+
+# OpenAI (OPCIONAL)
+OPENAI_API_KEY=sk-[sua-chave-openai]
+
+# Frontend (OBRIGATÓRIO)
 VITE_SUPABASE_URL=https://[seu-projeto].supabase.co
 VITE_SUPABASE_ANON_KEY=[sua-chave-anon]
-
-# Stripe Configuration (OBRIGATÓRIO para pagamentos)
-STRIPE_SECRET_KEY=sk_test_[sua-chave-secreta]
-STRIPE_WEBHOOK_SECRET=whsec_[sua-chave-webhook]
-
-# OpenAI Configuration (OPCIONAL - para IA real)
-VITE_OPENAI_API_KEY=sk-[sua-chave-openai]
-
-# URLs de Produção (OPCIONAL)
-VITE_APP_URL=http://localhost:5173
+VITE_API_URL=http://localhost:8001
+VITE_STRIPE_PUBLISHABLE_KEY=pk_test_[sua-chave-publica]
+WHITELISTED_EMAILS=tickrify@gmail.com
 ```
 
-### 5. ⚡ Configuração das Edge Functions (Supabase)
+### 5. ⚡ Webhook Stripe no Backend
 
-#### Passo 1: Verificar Edge Functions
-As seguintes funções já estão no projeto:
-- [ ] `supabase/functions/stripe-checkout/index.ts`
-- [ ] `supabase/functions/stripe-webhook/index.ts`
-
-#### Passo 2: Deploy Automático
-- [ ] As Edge Functions são deployadas automaticamente quando conectado ao Supabase
-- [ ] Não é necessário usar Supabase CLI no WebContainer
+- Endpoint exposto: `POST /webhook/stripe` (no mesmo servidor do backend)
+- Configure no Dashboard Stripe com o Signing Secret em `STRIPE_WEBHOOK_SECRET`
 
 ### 6. 🧪 Configuração para Desenvolvimento
 

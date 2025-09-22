@@ -1,5 +1,8 @@
 import { useLocalStorage } from './useLocalStorage';
 import { stripeProducts, getProductByPriceId } from '../stripe-config';
+import { useSupabaseDataContext } from './useSupabaseDataProvider';
+import supabase from '../services/supabase';
+import { useAuth } from './useAuth';
 
 export type PlanType = 'free' | 'trader' | 'alpha_pro';
 
@@ -41,37 +44,93 @@ function getInitialSubscription(): SubscriptionData {
 }
 
 export function useSubscription() {
-  const [subscription, setSubscription] = useLocalStorage<SubscriptionData>('tickrify-subscription', getInitialSubscription());
+  // Usar dados do Supabase
+  const { subscription, fetchSubscription } = useSupabaseDataContext();
+  const { user } = useAuth();
+  
+  // Manter compatibilidade com localStorage para código existente
+  const [localSubscription, setLocalSubscription] = useLocalStorage<SubscriptionData>('tickrify-subscription', getInitialSubscription());
 
   const getPlanType = (): PlanType => {
-    return subscription.planType;
+    // Usar plano do banco de dados se disponível
+    if (subscription) {
+      return subscription.plan_type as PlanType;
+    }
+    // Fallback para localStorage
+    return localSubscription.planType;
   };
 
   const getCurrentPlan = () => {
-    if (!subscription.priceId) return null;
-    return getProductByPriceId(subscription.priceId);
+    // Usar price_id do banco de dados se disponível
+    const priceId = subscription?.price_id || localSubscription.priceId;
+    if (!priceId) return null;
+    return getProductByPriceId(priceId);
   };
 
   const hasActiveSubscription = (): boolean => {
-    return subscription.isActive && subscription.planType !== 'free';
+    // Verificar assinatura ativa no banco de dados
+    if (subscription) {
+      return subscription.is_active && subscription.plan_type !== 'free';
+    }
+    // Fallback para localStorage
+    return localSubscription.isActive && localSubscription.planType !== 'free';
   };
 
   const switchPlan = async (priceId: string | null): Promise<AuthResult> => {
     try {
       console.log('🔄 Trocando plano para:', priceId);
       
+      if (!user) {
+        throw new Error('Usuário não autenticado');
+      }
+      
       let planType: PlanType = 'free';
       
       // Map price IDs to plan types
       const priceIdToPlanType: Record<string, PlanType> = {
-        'price_1RjU3gB1hl0IoocUWlz842SY': 'trader',
-        'price_1RjU4WB1hl0IoocUwn9UyTcS': 'alpha_pro'
+        'price_1RjU3gB1hl0IoocUWlz842SY': 'trader'
       };
       
       if (priceId && priceIdToPlanType[priceId]) {
         planType = priceIdToPlanType[priceId];
       }
       
+      // Atualizar no banco de dados
+      if (priceId === null) {
+        // Cancelar assinatura existente
+        const { error } = await supabase
+          .from('subscriptions')
+          .update({
+            is_active: false,
+            status: 'canceled',
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', user.id)
+          .eq('is_active', true);
+          
+        if (error) throw error;
+      } else {
+        // Criar nova assinatura (para testes - normalmente feito pelo webhook)
+        const { error } = await supabase
+          .from('subscriptions')
+          .insert({
+            user_id: user.id,
+            price_id: priceId,
+            plan_type: planType,
+            is_active: true,
+            start_date: new Date().toISOString(),
+            status: 'active',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+          
+        if (error) throw error;
+      }
+      
+      // Atualizar dados locais
+      await fetchSubscription();
+      
+      // Manter compatibilidade com localStorage
       const newSubscription: SubscriptionData = {
         priceId,
         planType,
@@ -80,7 +139,7 @@ export function useSubscription() {
         endDate: null
       };
       
-      setSubscription(newSubscription);
+      setLocalSubscription(newSubscription);
       
       console.log('✅ Plano alterado com sucesso:', {
         priceId,

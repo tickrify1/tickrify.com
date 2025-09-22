@@ -1,4 +1,5 @@
 // Serviço para integração com o backend FastAPI
+import supabase from './supabase';
 export interface BackendAnalysisRequest {
   image_base64: string;
   user_id: string;
@@ -79,10 +80,15 @@ export class TickrifyBackendAPI {
       console.log('📤 Enviando requisição para backend...');
 
       // Fazer requisição para o backend
+      // Obter token de acesso do Supabase (se houver)
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+
       const response = await fetch(`${API_BASE_URL}/api/analyze-chart`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {})
         },
         body: JSON.stringify(requestData)
       });

@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:backend": "cd backend && python3 main.py",
+    "dev:backend": "cd backend && ../venv/bin/python -m uvicorn main:app --reload --host 0.0.0.0 --port 8001",
     "dev:full": "concurrently \"npm run dev\" \"npm run dev:backend\"",
     "build": "vite build",
     "lint": "eslint .",
@@ -22,6 +22,7 @@
     "process": "^0.11.10",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-router-dom": "^7.9.1",
     "recharts": "^2.8.0",
     "stream-browserify": "^3.0.0",
     "stripe": "^18.5.0",

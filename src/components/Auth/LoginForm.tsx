@@ -18,23 +18,39 @@ export function LoginForm({ onSwitchToRegister, onClose }: LoginFormProps) {
     e.preventDefault();
     setError('');
 
-    if (!email || !password) {
-      setError('Por favor, preencha todos os campos');
+    // Validar campos
+    const trimmedEmail = email.trim();
+    const trimmedPassword = password.trim();
+
+    if (!trimmedEmail) {
+      setError('Por favor, informe seu email');
+      return;
+    }
+
+    if (!trimmedPassword) {
+      setError('Por favor, informe sua senha');
       return;
     }
 
     try {
-      const result = await login(email, password);
+      console.log('Iniciando login com:', trimmedEmail);
+      const result = await login(trimmedEmail, trimmedPassword);
+      console.log('Resultado do login:', result);
+      
       if (result.success) {
+        console.log('Login bem-sucedido, fechando modal');
         onClose();
         // Force page reload to ensure proper state update
         setTimeout(() => {
+          console.log('Recarregando página após login');
           window.location.reload();
         }, 100);
       } else {
+        console.error('Erro no login:', result.error);
         setError(result.error || 'Erro ao fazer login');
       }
     } catch (err) {
+      console.error('Exceção durante login:', err);
       setError('Erro ao fazer login. Tente novamente.');
     }
   };

@@ -10,6 +10,79 @@ interface SubscriptionModalProps {
   initialPlanId?: string | null;
 }
 
+// Extract Badge component
+const Badge = ({ children, className }) => (
+  <div className={`absolute -top-3 left-1/2 transform -translate-x-1/2 ${className}`}>
+    <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-1 rounded-full text-sm font-bold flex items-center space-x-1">
+      {children}
+    </div>
+  </div>
+);
+
+// Extract PlanCard component
+const PlanCard = ({ product, isCurrentPlan, isSelected, selectable, handlePlanSelect, isLoading }) => (
+  <div
+    key={product.id}
+    className={`relative rounded-2xl border-2 p-4 sm:p-5 transition-all hover:shadow-xl min-w-0 w-full max-w-xs mx-auto ${
+      product.popular
+        ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-purple-50 transform sm:scale-105'
+        : isCurrentPlan
+        ? 'border-green-500 bg-green-50'
+        : 'border-gray-200 hover:border-blue-300'
+    } flex flex-col justify-between`}
+  >
+    {product.popular && <Badge><Star className="w-4 h-4" /><span>POPULAR</span></Badge>}
+    {isCurrentPlan && <Badge className="right-4"><div className="bg-green-600 text-white px-3 py-1 rounded-full text-xs font-bold">ATUAL</div></Badge>}
+    <div className="text-center mb-4 sm:mb-6">
+      <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center mx-auto mb-2 sm:mb-4 ${product.popular ? 'bg-blue-600' : 'bg-gray-600'}`}>{product.name === 'Trader' && <Zap className="w-6 h-6 sm:w-8 sm:h-8 text-white" />}</div>
+      <h3 className="text-lg sm:text-2xl font-bold text-gray-900 mb-1 sm:mb-2">{product.name}</h3>
+      <div className="text-2xl sm:text-4xl font-bold text-gray-900 mb-1">{formatPrice(product.price)}</div>
+      <p className="text-gray-600 text-xs sm:text-base">por mês</p>
+    </div>
+    <div className="space-y-2 sm:space-y-3 mb-4 sm:mb-8">
+      {product.features?.map((feature, index) => (
+        <div key={index} className="flex items-start space-x-2 sm:space-x-3">
+          <Check className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0 mt-0.5" />
+          <span className="text-gray-700 text-xs sm:text-sm">{feature}</span>
+        </div>
+      ))}
+    </div>
+    <button
+      onClick={() => {
+        if (selectable && !isLoading) {
+          console.log('Selecionando plano:', product.priceId);
+          handlePlanSelect(product.priceId);
+        }
+      }}
+      disabled={isLoading || !selectable}
+      className={`w-full py-2 sm:py-3 rounded-xl font-semibold transition-all flex items-center justify-center space-x-2 text-xs sm:text-base ${
+        isCurrentPlan
+          ? 'bg-green-100 text-green-700 cursor-not-allowed'
+          : product.popular
+          ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 transform hover:scale-105'
+          : 'bg-gray-900 text-white hover:bg-gray-800 transform hover:scale-105'
+      } ${isLoading && isSelected ? 'opacity-50 cursor-not-allowed' : ''}`}
+    >
+      {isLoading && isSelected ? (
+        <>
+          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          <span>Processando...</span>
+        </>
+      ) : isCurrentPlan ? (
+        <>
+          <Check className="w-5 h-5" />
+          <span>Plano Atual</span>
+        </>
+      ) : (
+        <>
+          <Crown className="w-5 h-5" />
+          <span>Escolher Plano</span>
+        </>
+      )}
+    </button>
+  </div>
+);
+
 export function SubscriptionModal({ isOpen, onClose, initialPlanId }: SubscriptionModalProps) {
   const [selectedPlan, setSelectedPlan] = useState<string | null>(initialPlanId || null);
   const [isLoading, setIsLoading] = useState(false);
@@ -85,89 +158,15 @@ export function SubscriptionModal({ isOpen, onClose, initialPlanId }: Subscripti
               const isSelected = selectedPlan === product.priceId;
               const selectable = canSelect(product, isCurrentPlan);
               return (
-                <div
+                <PlanCard
                   key={product.id}
-                  className={`relative rounded-2xl border-2 p-4 sm:p-5 transition-all hover:shadow-xl min-w-0 w-full max-w-xs mx-auto ${
-                    product.popular
-                      ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-purple-50 transform sm:scale-105'
-                      : isCurrentPlan
-                      ? 'border-green-500 bg-green-50'
-                      : 'border-gray-200 hover:border-blue-300'
-                  } flex flex-col justify-between`}
-                >
-                  {/* Popular Badge */}
-                  {product.popular && (
-                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-1 rounded-full text-sm font-bold flex items-center space-x-1">
-                        <Star className="w-4 h-4" />
-                        <span>POPULAR</span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Current Plan Badge */}
-                  {isCurrentPlan && (
-                    <div className="absolute -top-3 right-4">
-                      <div className="bg-green-600 text-white px-3 py-1 rounded-full text-xs font-bold">
-                        ATUAL
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Plan Header */}
-                  <div className="text-center mb-4 sm:mb-6">
-                    <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center mx-auto mb-2 sm:mb-4 ${
-                      product.popular ? 'bg-blue-600' : 'bg-gray-600'
-                    }`}>
-                      {product.name === 'Trader' && <Zap className="w-6 h-6 sm:w-8 sm:h-8 text-white" />}
-                    </div>
-                    <h3 className="text-lg sm:text-2xl font-bold text-gray-900 mb-1 sm:mb-2">{product.name}</h3>
-                    <div className="text-2xl sm:text-4xl font-bold text-gray-900 mb-1">
-                      {formatPrice(product.price)}
-                    </div>
-                    <p className="text-gray-600 text-xs sm:text-base">por mês</p>
-                  </div>
-
-                  {/* Features */}
-                  <div className="space-y-2 sm:space-y-3 mb-4 sm:mb-8">
-                    {product.features?.map((feature, index) => (
-                      <div key={index} className="flex items-start space-x-2 sm:space-x-3">
-                        <Check className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                        <span className="text-gray-700 text-xs sm:text-sm">{feature}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Action Button */}
-                  <button
-                    onClick={() => selectable && handlePlanSelect(product.priceId)}
-                    disabled={isLoading || !selectable}
-                    className={`w-full py-2 sm:py-3 rounded-xl font-semibold transition-all flex items-center justify-center space-x-2 text-xs sm:text-base ${
-                      isCurrentPlan
-                        ? 'bg-green-100 text-green-700 cursor-not-allowed'
-                        : product.popular
-                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 transform hover:scale-105'
-                        : 'bg-gray-900 text-white hover:bg-gray-800 transform hover:scale-105'
-                    } ${isLoading && isSelected ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    {isLoading && isSelected ? (
-                      <>
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        <span>Processando...</span>
-                      </>
-                    ) : isCurrentPlan ? (
-                      <>
-                        <Check className="w-5 h-5" />
-                        <span>Plano Atual</span>
-                      </>
-                    ) : (
-                      <>
-                        <Crown className="w-5 h-5" />
-                        <span>Escolher Plano</span>
-                      </>
-                    )}
-                  </button>
-                </div>
+                  product={product}
+                  isCurrentPlan={isCurrentPlan}
+                  isSelected={isSelected}
+                  selectable={selectable}
+                  handlePlanSelect={handlePlanSelect}
+                  isLoading={isLoading}
+                />
               );
             })}
           </div>

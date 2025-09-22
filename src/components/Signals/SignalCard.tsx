@@ -1,4 +1,5 @@
 import { TrendingUp, TrendingDown, Minus, Clock, ExternalLink, X, Copy, Share2 } from 'lucide-react';
+import ReadMore from '../ReadMore';
 import { Signal } from '../../types';
 
 interface SignalCardProps {
@@ -151,7 +152,7 @@ Horário: ${new Date(signal.timestamp).toLocaleString()}`;
           </div>
         </div>
 
-        <p className="text-gray-700 text-xs sm:text-sm mb-4 break-words">{signal.description}</p>
+        <ReadMore text={signal.description} maxChars={140} className="text-xs sm:text-sm text-gray-700" />
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-0">
           <span className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium border ${colorClass} w-full sm:w-auto text-center`}>

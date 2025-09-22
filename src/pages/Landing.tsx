@@ -63,22 +63,22 @@ export function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl flex items-center justify-center">
-                <BarChart3 className="w-6 h-6 text-white" />
+              <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-xl flex items-center justify-center">
+                <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
-              <span className="text-2xl font-bold text-white">Tickrify</span>
+              <span className="text-xl sm:text-2xl font-bold text-white">Tickrify</span>
             </div>
             
             <div className="flex items-center space-x-4">
               <button
                 onClick={handleLogin}
-                className="text-white hover:text-blue-200 transition-colors"
+                className="text-white hover:text-blue-200 transition-colors text-sm sm:text-base"
               >
                 Entrar
               </button>
               <button
                 onClick={handleGetStarted}
-                className="bg-gradient-to-r from-blue-600 to-emerald-600 text-white px-6 py-2 rounded-lg hover:from-blue-700 hover:to-emerald-700 transition-all transform hover:scale-105"
+                className="bg-gradient-to-r from-blue-600 to-emerald-600 text-white px-5 sm:px-6 py-2 rounded-lg hover:from-blue-700 hover:to-emerald-700 transition-all transform hover:scale-105 text-sm sm:text-base"
               >
                 Começar Grátis
               </button>
@@ -97,12 +97,12 @@ export function Landing() {
               <span className="text-sm font-medium">Plataforma de Trading com IA</span>
             </div>
             
-            <h1 className="text-5xl md:text-7xl font-bold text-white mb-6">
+            <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">
               Trading com
               <span className="bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent"> IA Avançada</span>
             </h1>
             
-            <p className="text-xl md:text-2xl text-blue-100 mb-8 max-w-3xl mx-auto">
+            <p className="text-lg md:text-2xl text-blue-100 mb-8 max-w-3xl mx-auto">
               Análise técnica automatizada, sinais em tempo real e insights poderosos para maximizar seus resultados no trading.
             </p>
             

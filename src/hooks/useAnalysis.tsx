@@ -6,6 +6,7 @@ import { analyzeChartWithAI } from '../services/openai';
 import { tickrifyAPI } from '../services/tickrifyAPI';
 import { useSubscription } from './useSubscription';
 import { useAuth } from './useAuth';
+import { useSupabaseDataContext } from './useSupabaseDataProvider';
 
 interface MonthlyUsage {
   count: number;
@@ -23,70 +24,28 @@ function getInitialMonthlyUsage(): MonthlyUsage {
 export function useAnalysis() {
   const [currentAnalysis, setCurrentAnalysis] = useState<Analysis | null>(null);
   const [analiseIA, setAnaliseIA] = useState<any>(null);
-  const [analyses, setAnalyses] = useLocalStorage<Analysis[]>('tickrify-analyses', []);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [monthlyUsage, setMonthlyUsage] = useLocalStorage<MonthlyUsage>('tickrify-monthly-usage', 
-    getInitialMonthlyUsage()
-  );
+  
+  // Usar dados do Supabase
+  const { 
+    analyses, 
+    monthlyUsage, 
+    saveAnalysis: saveAnalysisToSupabase,
+    saveSignal: saveSignalToSupabase,
+    incrementMonthlyUsage 
+  } = useSupabaseDataContext();
   
   const { updatePerformanceFromAnalysis } = usePerformance();
   const { getPlanType, planLimits } = useSubscription();
   const { user } = useAuth();
 
-  // Reset monthly usage if new month - COM LOGS DETALHADOS E SEM LOOP
-  useEffect(() => {
-    const currentMonth = new Date().getMonth().toString();
-    const currentYear = new Date().getFullYear();
-    
-    console.log('🗓️ VERIFICAÇÃO MENSAL:', {
-      storedMonth: monthlyUsage.month,
-      storedYear: monthlyUsage.year,
-      currentMonth,
-      currentYear,
-      count: monthlyUsage.count
-    });
-    
-    // Só resetar se realmente mudou o mês/ano E o valor atual não é zerado
-    if ((monthlyUsage.month !== currentMonth || monthlyUsage.year !== currentYear) && monthlyUsage.count > 0) {
-      console.log('🔄 RESET DO CONTADOR MENSAL - novo mês/ano detectado');
-      setMonthlyUsage({
-        count: 0,
-        month: currentMonth,
-        year: currentYear
-      });
-    } else if (monthlyUsage.month !== currentMonth || monthlyUsage.year !== currentYear) {
-      console.log('🔄 ATUALIZAÇÃO DE MÊS/ANO - mantendo count zerado');
-      setMonthlyUsage({
-        count: monthlyUsage.count,
-        month: currentMonth,
-        year: currentYear
-      });
-    } else {
-      console.log('✅ MESMO MÊS/ANO - contador mantido:', monthlyUsage.count);
-    }
-  }, []); // Remover monthlyUsage das dependências para evitar loop
-
-  // Verificação inicial separada
-  useEffect(() => {
-    const currentMonth = new Date().getMonth().toString();
-    const currentYear = new Date().getFullYear();
-    
-    if (monthlyUsage.month !== currentMonth || monthlyUsage.year !== currentYear) {
-      console.log('🚀 VERIFICAÇÃO INICIAL - atualizando mês/ano');
-      setMonthlyUsage(prev => ({
-        count: prev.count,
-        month: currentMonth,
-        year: currentYear
-      }));
-    }
-  }, []);  // Só executar uma vez na inicialização
+  // Removido ajuste manual do contador mensal para evitar ReferenceError
+  // O controle de uso mensal é feito via contexto (useSupabaseData)
 
   const canAnalyze = (): boolean => {
-    const planType = getPlanType();
-    const limit = planLimits[planType];
-    
-    if (limit === Infinity) return true;
-    return monthlyUsage.count < limit;
+    // Usar limite do banco de dados
+    if (monthlyUsage.limit === Infinity) return true;
+    return monthlyUsage.count < monthlyUsage.limit;
   };
 
   const analyzeChart = async (symbol?: string, imageData?: string) => {
@@ -183,7 +142,13 @@ export function useAnalysis() {
       console.log('✅ currentAnalysis definido:', analysis);
       console.log('✅ analiseIA definido:', aiResponse);
       
-      setAnalyses(prev => [analysis, ...prev.slice(0, 49)]);
+      // Salvar análise no banco de dados
+      try {
+        await saveAnalysisToSupabase(analysis);
+        console.log('✅ Análise salva no banco de dados');
+      } catch (error) {
+        console.error('❌ Erro ao salvar análise:', error);
+      }
       
       console.log('✅ Análise concluída:', {
         symbol: analysis.symbol,
@@ -192,25 +157,20 @@ export function useAnalysis() {
         aiResponse
       });
       
-      // Update monthly usage - COM LOG DETALHADO
-      console.log('📊 ANTES do incremento - Uso mensal atual:', monthlyUsage);
-      setMonthlyUsage(prev => {
-        const newUsage = {
-          ...prev,
-          count: prev.count + 1
-        };
-        console.log('📈 INCREMENTANDO uso mensal:', prev.count, '->', newUsage.count);
-        console.log('📅 Mês/Ano:', prev.month, prev.year);
-        return newUsage;
-      });
-      console.log('✅ Comando de incremento enviado - aguardando state update...');
+      // Incrementar uso mensal no banco de dados
+      try {
+        await incrementMonthlyUsage();
+        console.log('✅ Uso mensal incrementado no banco de dados');
+      } catch (error) {
+        console.error('❌ Erro ao incrementar uso mensal:', error);
+      }
       
       // Update performance metrics
       updatePerformanceFromAnalysis(analysis);
       
       // Generate signal based on analysis with real data
-      setTimeout(() => {
-        generateSignalFromAnalysis(analysis);
+      setTimeout(async () => {
+        await generateSignalFromAnalysis(analysis);
       }, 1000);
       
       console.log('🔄 Estados atualizados - aguardando re-render...');
@@ -228,7 +188,7 @@ export function useAnalysis() {
     }
   };
 
-  const generateSignalFromAnalysis = (analysis: Analysis) => {
+  const generateSignalFromAnalysis = async (analysis: Analysis) => {
     // Criar sinal baseado na análise real
     const signal = {
       id: Date.now().toString(),
@@ -241,10 +201,13 @@ export function useAnalysis() {
       description: `Sinal gerado da análise: ${analysis.reasoning.substring(0, 100)}...`
     };
 
-    // Adicionar sinal à lista
-    const currentSignals = JSON.parse(localStorage.getItem('tickrify-signals') || '[]');
-    const newSignals = [signal, ...currentSignals.slice(0, 19)];
-    localStorage.setItem('tickrify-signals', JSON.stringify(newSignals));
+    // Salvar sinal no banco de dados
+    try {
+      await saveSignalToSupabase(signal);
+      console.log('✅ Sinal salvo no banco de dados');
+    } catch (error) {
+      console.error('❌ Erro ao salvar sinal:', error);
+    }
     
     // Disparar evento para atualizar componentes
     window.dispatchEvent(new CustomEvent('signalGenerated', { detail: signal }));

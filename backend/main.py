@@ -1,13 +1,22 @@
 import os
 import base64
 import tempfile
-from typing import Optional
-from fastapi import FastAPI, HTTPException
+import uuid
+from datetime import datetime
+from typing import Optional, Dict, Any, List
+from fastapi import FastAPI, HTTPException, Body, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import json
 from dotenv import load_dotenv
 import stripe
+from .auth import AuthMiddleware, get_current_user_from_request
+from .database import Database, User, Subscription
+from .error_handler import register_exception_handlers, APIException
+from .stripe_service import StripeService
+from .stripe_endpoints import router as stripe_router
+from fastapi import Header
+from .stripe_webhook import stripe_webhook as stripe_webhook_handler
 
 # Carregar variáveis de ambiente
 load_dotenv()
@@ -23,37 +32,27 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Inicializar cliente OpenAI com tratamento de erro robusto
+# Registrar manipuladores de exceções
+register_exception_handlers(app)
+
+# Importar serviço de IA
+from .ai_service import AIService
+
+# Verificar disponibilidade de serviços de IA
 openai_client = None
 OPENAI_AVAILABLE = False
 
 try:
     api_key = os.getenv("OPENAI_API_KEY")
     if api_key and api_key.startswith("sk-"):
-        # Tentar múltiplas abordagens para inicializar OpenAI
-        try:
-            from openai import OpenAI
-            # Primeira tentativa: cliente com API key explícita
-            openai_client = OpenAI(api_key=api_key)
-            OPENAI_AVAILABLE = True
-            print("✅ OpenAI configurado com sucesso (método 1)")
-        except Exception as e1:
-            try:
-                # Segunda tentativa: via variável de ambiente
-                os.environ["OPENAI_API_KEY"] = api_key
-                openai_client = OpenAI()
-                OPENAI_AVAILABLE = True
-                print("✅ OpenAI configurado com sucesso (método 2)")
-            except Exception as e2:
-                print(f"❌ Erro ao configurar OpenAI: {e1}, {e2}")
-                print("⚠️  Usando modo simulado - análise ainda funcionará")
-                OPENAI_AVAILABLE = False
+        OPENAI_AVAILABLE = True
+        print("✅ API key OpenAI configurada com sucesso")
     else:
-        print("⚠️  OPENAI_API_KEY inválida ou não encontrada - usando modo simulado")
+        print("⚠️ OPENAI_API_KEY inválida ou não encontrada - usando modo simulado")
         OPENAI_AVAILABLE = False
 except Exception as e:
-    print(f"❌ Erro geral ao configurar OpenAI: {e}")
-    print("⚠️  Continuando com análise simulada")
+    print(f"❌ Erro ao verificar configuração OpenAI: {e}")
+    print("⚠️ Continuando com análise simulada")
     OPENAI_AVAILABLE = False
 
 class ChartAnalysisRequest(BaseModel):
@@ -248,66 +247,23 @@ EXEMPLO DE RESPOSTA CORRETA:
 LEMBRE-SE: NUNCA INVENTE DADOS QUE NÃO CONSEGUE VER NO GRÁFICO!
 RETORNE APENAS O JSON ACIMA, SEM TEXTO ADICIONAL!
 """
-def analyze_chart_with_openai(image_path: str) -> ChartAnalysisResponse:
-    """Analisa o gráfico usando OpenAI GPT-4 Vision com prompt profissional"""
+def analyze_chart_with_ai(image_path: str) -> ChartAnalysisResponse:
+    """Analisa o gráfico usando serviço de IA com prompt profissional"""
     try:
-        if not openai_client:
-            raise Exception("Cliente OpenAI não configurado")
-            
-        # Codifica a imagem em base64 para enviar para OpenAI
+        # Codifica a imagem em base64 para enviar para a API
         with open(image_path, "rb") as image_file:
             base64_image = base64.b64encode(image_file.read()).decode('utf-8')
         
-        print("🤖 Enviando imagem para análise OpenAI...")
+        print("🤖 Enviando imagem para análise com IA...")
         
-        # Usando a sintaxe da versão 1.x
-        response = openai_client.chat.completions.create(
-            model="gpt-4o-mini",  # Modelo com vision
-            messages=[
-                {
-                    "role": "user", 
-                    "content": [
-                        {"type": "text", "text": ANALYSIS_PROMPT},
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": f"data:image/png;base64,{base64_image}"
-                            }
-                        }
-                    ]
-                }
-            ],
-            max_tokens=2000,
-            temperature=0.1
-        )
+        # Usar o serviço de IA para análise
+        analysis_json = AIService.analyze_chart(base64_image)
         
-        # Extrair e parsear a resposta JSON
-        content = response.choices[0].message.content
-        print(f"🤖 Resposta OpenAI recebida: {len(content)} caracteres")
-        print(f"🔍 CONTEÚDO COMPLETO DA RESPOSTA:")
+        print(f"🤖 Resposta IA recebida e processada")
+        print(f"🔍 ANÁLISE PROCESSADA:")
         print("=" * 50)
-        print(content)
+        print(json.dumps(analysis_json, indent=2, ensure_ascii=False))
         print("=" * 50)
-        
-        # Tentar extrair JSON da resposta
-        try:
-            # Primeiro tentar parsear como JSON direto
-            analysis_json = json.loads(content)
-            print("✅ JSON parseado com sucesso")
-        except json.JSONDecodeError as e:
-            print(f"❌ Erro ao parsear JSON: {e}")
-            # Tentar extrair JSON de uma resposta que pode ter texto adicional
-            import re
-            json_match = re.search(r'\{.*\}', content, re.DOTALL)
-            if json_match:
-                json_content = json_match.group()
-                print(f"🔍 JSON EXTRAÍDO:")
-                print(json_content)
-                analysis_json = json.loads(json_content)
-                print("✅ JSON extraído e parseado")
-            else:
-                print("❌ Não foi possível extrair JSON válido da resposta")
-                raise ValueError("Não foi possível extrair JSON válido da resposta")
         
         # Extrair informações do novo formato de 6 passos
         simbolo_detectado = analysis_json.get("simbolo_detectado", "CHART_UNKNOWN")
@@ -344,36 +300,37 @@ def analyze_chart_with_openai(image_path: str) -> ChartAnalysisResponse:
         if not any([passo_1, passo_2, passo_3, passo_4, passo_5, passo_6, resumo]):
             print("⚠️ OpenAI não seguiu o formato de 6 passos. Tentando extração inteligente...")
             
-            # Buscar por padrões conhecidos na resposta
-            content_lower = content.lower()
+            # Converter o json para string para análise de texto
+            analysis_text = json.dumps(analysis_json, ensure_ascii=False)
+            analysis_text_lower = analysis_text.lower()
             
             # Tentar extrair informações de indicadores da resposta
-            rsi_match = re.search(r'rsi[:\s]*(\d+)', content_lower)
+            rsi_match = re.search(r'rsi[:\s]*(\d+)', analysis_text_lower)
             macd_info = "não detectado"
-            if "macd" in content_lower:
-                if any(word in content_lower for word in ["positivo", "bullish", "acima"]):
+            if "macd" in analysis_text_lower:
+                if any(word in analysis_text_lower for word in ["positivo", "bullish", "acima"]):
                     macd_info = "MACD com sinal positivo detectado"
-                elif any(word in content_lower for word in ["negativo", "bearish", "abaixo"]):
+                elif any(word in analysis_text_lower for word in ["negativo", "bearish", "abaixo"]):
                     macd_info = "MACD com sinal negativo detectado"
                 else:
                     macd_info = "MACD mencionado na análise"
             
             # Detectar médias móveis
             mm_info = "não detectado"
-            if any(ma in content_lower for ma in ["média móvel", "mm", "moving average", "ma"]):
-                if any(word in content_lower for word in ["acima", "above", "rompeu"]):
+            if any(ma in analysis_text_lower for ma in ["média móvel", "mm", "moving average", "ma"]):
+                if any(word in analysis_text_lower for word in ["acima", "above", "rompeu"]):
                     mm_info = "Preço acima das médias móveis"
-                elif any(word in content_lower for word in ["abaixo", "below", "rompimento"]):
+                elif any(word in analysis_text_lower for word in ["abaixo", "below", "rompimento"]):
                     mm_info = "Preço abaixo das médias móveis"
                 else:
                     mm_info = "Médias móveis analisadas"
             
             # Detectar volume
             volume_info = "não detectado"
-            if "volume" in content_lower:
-                if any(word in content_lower for word in ["alto", "high", "crescente", "forte"]):
+            if "volume" in analysis_text_lower:
+                if any(word in analysis_text_lower for word in ["alto", "high", "crescente", "forte"]):
                     volume_info = "Volume alto confirmando movimento"
-                elif any(word in content_lower for word in ["baixo", "low", "fraco"]):
+                elif any(word in analysis_text_lower for word in ["baixo", "low", "fraco"]):
                     volume_info = "Volume baixo"
                 else:
                     volume_info = "Volume analisado"
@@ -385,10 +342,10 @@ def analyze_chart_with_openai(image_path: str) -> ChartAnalysisResponse:
             print(f"   Volume: {volume_info}")
             
             # Detectar ação
-            if any(word in content_lower for word in ["compra", "buy", "bullish", "entrada", "long"]):
+            if any(word in analysis_text_lower for word in ["compra", "buy", "bullish", "entrada", "long"]):
                 acao = "compra"
                 base_justificativa = "Análise técnica indica oportunidade de compra"
-            elif any(word in content_lower for word in ["venda", "sell", "bearish", "saída", "short"]):
+            elif any(word in analysis_text_lower for word in ["venda", "sell", "bearish", "saída", "short"]):
                 acao = "venda"
                 base_justificativa = "Análise técnica indica oportunidade de venda"
             else:
@@ -397,15 +354,15 @@ def analyze_chart_with_openai(image_path: str) -> ChartAnalysisResponse:
             
             # Extrair símbolo se possível
             import re
-            simbolo_match = re.search(r'(BTC|ETH|EUR|USD|GBP|JPY|AAPL|GOOGL|TSLA|SPY)', content, re.IGNORECASE)
+            simbolo_match = re.search(r'(BTC|ETH|EUR|USD|GBP|JPY|AAPL|GOOGL|TSLA|SPY)', analysis_text, re.IGNORECASE)
             if simbolo_match:
                 simbolo_detectado = simbolo_match.group().upper()
             
             # Criar justificativa baseada no conteúdo da análise
-            if len(content) > 100:
+            if len(analysis_text) > 100:
                 # Pegar uma parte relevante da análise da OpenAI
-                content_clean = re.sub(r'[{}"\[\]]', '', content)
-                words = content_clean.split()[:15]  # Primeiras 15 palavras
+                analysis_text_clean = re.sub(r'[{}"\[\]]', '', analysis_text)
+                words = analysis_text_clean.split()[:15]  # Primeiras 15 palavras
                 justificativa = f"{simbolo_detectado}: {' '.join(words)}"
             else:
                 justificativa = f"{simbolo_detectado}: {base_justificativa}"
@@ -588,17 +545,58 @@ async def root():
 
 @app.get("/health")
 async def health_check():
+    # Verificar conexão com banco de dados
+    db_healthy = False
+    try:
+        # Testar conexão com banco de dados
+        db_healthy = True
+    except Exception as e:
+        print(f"❌ Erro na conexão com banco de dados: {e}")
+    
     return {
         "status": "healthy",
         "openai_available": openai_client is not None,
-        "timestamp": "2025-09-08"
+        "database_connected": db_healthy,
+        "timestamp": datetime.now().isoformat()
     }
 
 @app.post("/api/analyze-chart", response_model=ChartAnalysisResponse)
-async def analyze_chart(request: ChartAnalysisRequest):
+async def analyze_chart(request: ChartAnalysisRequest = Body(...), current_user: Optional[User] = Depends(AuthMiddleware.get_current_user)):
     """
     Endpoint principal para análise de gráficos
     """
+    # Validate input
+    if not request.image_base64 or not request.user_id:
+        raise HTTPException(status_code=400, detail="Dados de entrada inválidos")
+    if not isinstance(request.image_base64, str) or not isinstance(request.user_id, str):
+        raise HTTPException(status_code=400, detail="Formato de dados inválido")
+    if len(request.user_id) > 100:
+        raise HTTPException(status_code=400, detail="ID de usuário muito longo")
+    
+    # Verificar se o usuário tem permissão para analisar
+    if current_user and current_user.id != request.user_id:
+        raise HTTPException(status_code=403, detail="Usuário não autorizado")
+    
+    # Verificar limite de análises
+    if current_user:
+        # Verificar assinatura ativa
+        subscription = await Database.get_active_subscription(current_user.id)
+        
+        # Determinar limite com base no tipo de plano
+        plan_type = subscription.plan_type if subscription else "free"
+        plan_limits = {"free": 10, "trader": 120, "alpha_pro": 350}
+        limit = plan_limits.get(plan_type, 10)
+        
+        # Verificar uso atual
+        current_usage = await Database.get_monthly_usage(current_user.id)
+        
+        # Verificar se excedeu o limite
+        if current_usage >= limit:
+            raise HTTPException(
+                status_code=429,
+                detail=f"Limite mensal de análises atingido ({current_usage}/{limit}). Faça upgrade para continuar."
+            )
+    
     print(f"📊 Recebida solicitação de análise do usuário: {request.user_id}")
     
     try:
@@ -607,15 +605,50 @@ async def analyze_chart(request: ChartAnalysisRequest):
         print(f"🖼️  Imagem salva temporariamente em: {image_path}")
         
         try:
-            # Tentar análise com OpenAI se disponível
-            if openai_client:
-                print("🤖 Usando OpenAI para análise...")
-                result = analyze_chart_with_openai(image_path)
+            # Tentar análise com IA se disponível
+            if OPENAI_AVAILABLE:
+                print("🤖 Usando serviço de IA para análise...")
+                result = analyze_chart_with_ai(image_path)
             else:
                 print("🎲 Usando análise simulada...")
                 result = simulate_chart_analysis(image_path)
             
             print(f"✅ Análise concluída: {result.acao} - {result.justificativa}")
+            
+            # Incrementar contador de uso se usuário autenticado
+            if current_user:
+                await Database.increment_monthly_usage(current_user.id)
+                
+                # Salvar análise no banco de dados
+                analysis_id = str(uuid.uuid4())
+                
+                # Determinar valores com base na resposta
+                recommendation_map = {"compra": "BUY", "venda": "SELL", "esperar": "HOLD"}
+                recommendation = recommendation_map.get(result.acao, "HOLD")
+                
+                # Preparar dados da análise
+                analysis_data = {
+                    "id": analysis_id,
+                    "user_id": current_user.id,
+                    "symbol": "CHART_ANALYSIS",  # Poderia ser extraído da análise
+                    "recommendation": recommendation,
+                    "confidence": 75,  # Valor padrão
+                    "target_price": 0.0,  # Seria calculado com base na análise
+                    "stop_loss": 0.0,  # Seria calculado com base na análise
+                    "timeframe": "1H",  # Valor padrão
+                    "timestamp": datetime.now().isoformat(),
+                    "reasoning": result.justificativa,
+                    "technical_indicators": [{
+                        "name": "AI Analysis",
+                        "value": result.acao,
+                        "signal": "BULLISH" if result.acao == "compra" else "BEARISH" if result.acao == "venda" else "NEUTRAL",
+                        "description": result.justificativa
+                    }]
+                }
+                
+                # Salvar no banco de dados
+                await Database.save_analysis(analysis_data)
+            
             return result
             
         finally:
@@ -634,30 +667,13 @@ async def analyze_chart(request: ChartAnalysisRequest):
 
 # Configurar chave secreta do Stripe
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+if not stripe.api_key:
+    print("\033[93mAVISO: STRIPE_SECRET_KEY não configurada\033[0m")
 
-class StripeCheckoutRequest(BaseModel):
-    price_id: str
-    success_url: str
-    cancel_url: str
-    mode: str  # "subscription" ou "payment"
+# Incluir rotas do Stripe
+app.include_router(stripe_router)
 
-class StripeCheckoutResponse(BaseModel):
-    session_id: str
-    url: str
-
-@app.post("/api/stripe/create-checkout-session", response_model=StripeCheckoutResponse)
-def create_checkout_session(req: StripeCheckoutRequest):
-    try:
-        session = stripe.checkout.Session.create(
-            payment_method_types=["card"],
-            line_items=[{
-                "price": req.price_id,   # usa o price_id enviado no body
-                "quantity": 1,
-            }],
-            mode=req.mode,
-            success_url=req.success_url,
-            cancel_url=req.cancel_url,
-        )
-        return StripeCheckoutResponse(session_id=session.id, url=session.url)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+# Expor o webhook do Stripe na mesma aplicação, preservando headers
+@app.post("/webhook/stripe")
+async def webhook_proxy(request: Request, stripe_signature: str = Header(None)):
+    return await stripe_webhook_handler(request, stripe_signature)

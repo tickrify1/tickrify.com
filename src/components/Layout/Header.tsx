@@ -52,7 +52,7 @@ export function Header({ onMenuClick, isMobile, onPlanSwitch, currentPlanType }:
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 px-3 sm:px-4 py-3 flex items-center justify-between">
+    <header className="bg-white border-b border-gray-200 px-2 sm:px-4 py-3 flex items-center justify-between">
       {/* Left side - Menu button (mobile) */}
       <div className="flex items-center space-x-3">
         {isMobile && (

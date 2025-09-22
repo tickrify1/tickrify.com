@@ -1,6 +1,7 @@
 import React from 'react';
 import { TrendingUp, TrendingDown, Minus, Target, Shield, Brain, BarChart3, Zap, Clock, Star } from 'lucide-react';
 import { Analysis } from '../../types';
+import ReadMore from '../ReadMore';
 import { ChartDashboard } from './ChartDashboard';
 import { useAnalysis } from '../../hooks/useAnalysis';
 
@@ -89,7 +90,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ analysis }) => {
                   <h3 className="text-lg font-bold text-blue-900 mb-3 flex items-center">
                     📈 Justificativa Técnica
                   </h3>
-                  <p className="text-blue-800 leading-relaxed">{analiseIA.justificativa_decisao}</p>
+                  <ReadMore text={analiseIA.justificativa_decisao} maxChars={220} className="text-blue-800" />
                 </div>
 
                 {/* Análise Técnica */}
@@ -97,7 +98,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ analysis }) => {
                   <h3 className="text-lg font-bold text-purple-900 mb-3 flex items-center">
                     📉 Análise Técnica
                   </h3>
-                  <p className="text-purple-800 leading-relaxed">{analiseIA.analise_tecnica}</p>
+                  <ReadMore text={analiseIA.analise_tecnica} maxChars={220} className="text-purple-800" />
                 </div>
 
                 {/* Indicadores */}
@@ -290,7 +291,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ analysis }) => {
                 <Brain className="w-5 h-5 mr-2" />
                 Análise Detalhada
               </h4>
-              <p className="text-gray-700 leading-relaxed">{analysis.reasoning}</p>
+              <ReadMore text={analysis.reasoning} maxChars={240} className="text-gray-700" />
             </div>
           </div>
         </div>

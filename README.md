@@ -1,111 +1,115 @@
-# 🚀 Tickrify - Plataforma de Análise Financeira com IA
+# Tickrify - Plataforma de Análise de Gráficos com IA
 
-## ✅ SISTEMA 100% LOCAL + BACKEND FASTAPI
+Tickrify é uma plataforma avançada de análise de gráficos financeiros que utiliza inteligência artificial para fornecer recomendações de trading precisas e confiáveis.
 
-Esta plataforma funciona **completamente offline** ou com backend real para análise avançada.
+## Características Principais
 
-## 🔧 Configuração Rápida
+- **Análise de Gráficos com IA**: Upload de imagens de gráficos para análise técnica avançada
+- **Sistema de Assinaturas**: Diferentes planos com limites de uso personalizados
+- **Dashboard Interativo**: Visualização de desempenho e histórico de análises
+- **Sinais de Trading**: Geração automática de sinais baseados em análises
+- **Integração com Stripe**: Sistema completo de pagamentos e assinaturas
+- **Autenticação Segura**: Sistema de login com Supabase
 
-### Opção 1: Frontend Apenas (Local)
-```bash
-npm install
-npm run dev
+## Tecnologias
+
+### Frontend
+- React
+- TypeScript
+- Tailwind CSS
+- Vite
+- Supabase Client
+
+### Backend
+- FastAPI (Python)
+- Supabase (PostgreSQL)
+- OpenAI API
+- Stripe API
+
+## Estrutura do Projeto
+
+```
+/
+├── backend/               # API FastAPI
+│   ├── ai_service.py      # Serviço de integração com IA
+│   ├── auth.py            # Middleware de autenticação
+│   ├── database.py        # Camada de acesso ao banco de dados
+│   ├── error_handler.py   # Tratamento centralizado de erros
+│   ├── main.py            # Endpoints principais da API
+│   ├── schema.sql         # Esquema do banco de dados
+│   └── stripe_webhook.py  # Manipulador de webhooks do Stripe
+│
+├── src/                   # Frontend React
+│   ├── components/        # Componentes React
+│   ├── hooks/             # React Hooks personalizados
+│   ├── pages/             # Páginas da aplicação
+│   ├── services/          # Serviços de API
+│   └── types/             # Definições de tipos TypeScript
+│
+└── env.example            # Exemplo de variáveis de ambiente
 ```
 
-### Opção 2: Frontend + Backend (Análise Real)
-```bash
-# 1. Instalar dependências
-npm install
-cd backend && pip install -r requirements.txt
+## Começando
 
-# 2. Configurar OpenAI (opcional)
-echo "OPENAI_API_KEY=sk-sua_chave" > backend/.env
+### Pré-requisitos
 
-# 3. Executar tudo
-npm run dev:full
-```
+- Node.js 16+ e npm
+- Python 3.10+
+- Conta no Supabase
+- Conta no Stripe
+- Conta na OpenAI
 
-**Pronto! Sistema completo funcionando!** 🎯
+### Instalação
 
-## 🧠 Funcionalidades Implementadas
+1. Clone o repositório:
+   ```bash
+   git clone https://github.com/seu-usuario/tickrify.git
+   cd tickrify
+   ```
 
-### ✅ Sistema Local Completo
-- **Análise IA simulada** avançada
-- **Sistema de planos** funcional
-- **Autenticação local** 
-- **Dados persistentes** no navegador
+2. Configure o backend:
+   ```bash
+   # Criar ambiente virtual Python
+   python -m venv venv
+   source venv/bin/activate  # Linux/Mac
+   # ou
+   venv\Scripts\activate     # Windows
+   
+   # Instalar dependências
+   pip install -r backend/requirements.txt
+   
+   # Configurar variáveis de ambiente
+   cp env.example .env
+   # Edite o arquivo .env com suas credenciais
+   ```
 
-### ✅ Planos Funcionais
-- **🆓 FREE**: 10 análises/mês
-- **🚀 TRADER**: 120 análises/mês (R$ 59,90)
+3. Configure o frontend:
+   ```bash
+   # Instalar dependências
+   npm install
+   
+   # Iniciar servidor de desenvolvimento
+   npm run dev
+   ```
 
-### ✅ Análise Inteligente
-- Upload de gráficos
-- Análise técnica completa
-- Indicadores automáticos
-- Recomendações BUY/SELL/HOLD
-- Gestão de risco
+4. Configurar banco de dados:
+   - Crie um projeto no Supabase
+   - Execute o script em `backend/schema.sql` no Editor SQL do Supabase
 
-## 🎯 Como Funciona
+5. Iniciar o backend:
+   ```bash
+   cd backend
+   uvicorn main:app --reload
+   ```
 
-1. **Execute** `npm run dev`
-2. **Crie conta** ou faça login
-3. **Teste planos** no painel superior direito
-4. **Faça upload** de gráficos
-5. **Receba análises** detalhadas
+## Implantação em Produção
 
-## 🔥 Recursos Principais
+Para instruções detalhadas sobre como implantar o Tickrify em produção, consulte o [Guia de Implantação](DEPLOYMENT_GUIDE.md).
 
-### ✅ Interface Profissional
-- Design moderno e responsivo
-- Experiência mobile otimizada
-- Feedback visual completo
+## Licença
 
-### ✅ Sistema de Planos
-- Troca instantânea de planos
-- Limites automáticos por plano
-- Controle de acesso por funcionalidade
+Este projeto está licenciado sob a Licença MIT - veja o arquivo LICENSE para detalhes.
 
-### ✅ Análise Completa
-- Recomendação clara (BUY/SELL/HOLD)
-- Nível de confiança (60-95%)
-- Preço alvo e stop loss
-- Indicadores técnicos detalhados
+## Suporte
 
-## 🚀 Funciona Sem APIs!
-
-A plataforma está **100% funcional** sem necessidade de:
-- ❌ Supabase
-- ❌ Stripe obrigatório
-- ❌ OpenAI obrigatório
-- ❌ Configurações complexas
-
-## 📱 Funcionalidades Mobile
-- Upload via galeria ou câmera
-- Interface otimizada para touch
-- Análise rápida em qualquer lugar
-
-## 🔒 Dados Locais
-- Autenticação no navegador
-- Histórico de análises salvo
-- Configurações persistentes
-- Sem dependência externa
-
-## 🎨 Configurações Opcionais
-
-### Tickrify IA (Para IA Avançada)
-```env
-VITE_TICKRIFY_AI_KEY=sk-sua_chave
-```
-
-### Stripe (Para Pagamentos Reais)
-```env
-STRIPE_SECRET_KEY=your_stripe_secret_key_here
-STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret_here
-```
-
----
-
-**Execute `npm run dev` e teste imediatamente!** 🚀✨
-
-**Tudo funciona offline - zero configuração necessária!**
+Para suporte, entre em contato com support@tickrify.com ou abra uma issue no GitHub.

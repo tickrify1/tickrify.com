@@ -1,6 +1,7 @@
 import { loadStripe } from '@stripe/stripe-js';
 import { useState } from 'react';
 import { StripeCheckoutParams } from '../services/stripe';
+import supabase from '../services/supabase';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY!);
 
@@ -13,9 +14,12 @@ export function useStripe() {
     setError(null);
     try {
       // Chama o backend para criar a sessão real do Stripe
-      const response = await fetch('/api/stripe/create-checkout-session', {
+      const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || '';
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      const response = await fetch(`${API_BASE_URL}/api/stripe/create-checkout-session`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}) },
         body: JSON.stringify(params),
       });
       if (!response.ok) throw new Error('Erro ao criar sessão Stripe');

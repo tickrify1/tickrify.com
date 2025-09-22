@@ -15,6 +15,7 @@ export interface User {
 export interface AuthResult {
   success: boolean;
   error?: string;
+  message?: string;
 }
 
 export function useAuth() {
@@ -24,63 +25,206 @@ export function useAuth() {
   useEffect(() => {
     // Buscar usuário autenticado do Supabase ao inicializar
     (async () => {
-      const { data } = await supabase.auth.getUser();
-      if (data.user) {
-        setUser({
-          id: data.user.id,
-          name: data.user.user_metadata?.full_name || data.user.email || '',
-          email: data.user.email || '',
-          avatar: data.user.user_metadata?.avatar_url,
-          user_metadata: data.user.user_metadata
-        });
+      try {
+        console.log('Verificando sessão do usuário...');
+        const { data: sessionData } = await supabase.auth.getSession();
+        console.log('Sessão:', sessionData);
+        
+        if (sessionData.session) {
+          const { data } = await supabase.auth.getUser();
+          console.log('Dados do usuário:', data.user);
+          
+          if (data.user) {
+            setUser({
+              id: data.user.id,
+              name: data.user.user_metadata?.full_name || data.user.email || '',
+              email: data.user.email || '',
+              avatar: data.user.user_metadata?.avatar_url,
+              user_metadata: data.user.user_metadata
+            });
+            console.log('Usuário autenticado com sucesso');
+          }
+        } else {
+          console.log('Nenhuma sessão ativa encontrada');
+          setUser(null);
+        }
+      } catch (error) {
+        console.error('Erro ao verificar autenticação:', error);
+        setUser(null);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     })();
   }, []);
 
   const login = async (email: string, password: string): Promise<AuthResult> => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      setIsLoading(false);
-      if (error) return { success: false, error: error.message };
-      if (!data.user) return { success: false, error: 'Usuário não encontrado' };
-      setUser({
+      console.log('Tentando login com:', email);
+      
+      // Verificar se as credenciais do Supabase estão configuradas corretamente
+      const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL;
+      const supabaseAnon = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY;
+      if (!supabaseUrl || !supabaseAnon) {
+        console.error('Configuração do Supabase inválida');
+        setIsLoading(false);
+        return { success: false, error: 'Erro de configuração do sistema' };
+      }
+      
+      // Tentar login com as credenciais fornecidas
+      const { data, error } = await supabase.auth.signInWithPassword({ 
+        email: email.trim(), 
+        password: password.trim() 
+      });
+      
+      // Log detalhado da resposta para depuração
+      console.log('Resposta completa do login:', { data, error });
+      
+      if (error) {
+        console.error('Erro de login:', error.message, error.status);
+        
+        // Mensagens de erro mais amigáveis
+        let errorMessage = error.message;
+        if (error.message === 'Invalid login credentials') {
+          errorMessage = 'Email ou senha incorretos. Por favor, verifique suas credenciais.';
+        } else if (error.message.includes('Email not confirmed')) {
+          errorMessage = 'Email não confirmado. Por favor, verifique sua caixa de entrada.';
+        }
+        
+        setIsLoading(false);
+        return { success: false, error: errorMessage };
+      }
+      
+      if (!data || !data.user) {
+        console.error('Login sem dados de usuário');
+        setIsLoading(false);
+        return { success: false, error: 'Usuário não encontrado' };
+      }
+      
+      console.log('Login bem-sucedido:', data.user);
+      console.log('Sessão:', data.session);
+      
+      // Salvar usuário no estado
+      const userData = {
         id: data.user.id,
         name: data.user.user_metadata?.full_name || data.user.email,
         email: data.user.email || '',
         avatar: data.user.user_metadata?.avatar_url,
         user_metadata: data.user.user_metadata
-      });
+      };
+      
+      setUser(userData);
+      console.log('Usuário definido no estado:', userData);
+      
+      // Salvar na sessão do navegador para persistência
+      localStorage.setItem('tickrify-user', JSON.stringify(userData));
+      
+      setIsLoading(false);
       return { success: true };
     } catch (error: any) {
+      console.error('Erro inesperado no login:', error);
       setIsLoading(false);
-      return { success: false, error: error.message };
+      return { success: false, error: 'Ocorreu um erro ao fazer login. Por favor, tente novamente.' };
     }
   };
 
   const register = async (name: string, email: string, password: string): Promise<AuthResult> => {
     setIsLoading(true);
     try {
+      console.log('Tentando registrar:', email);
+      
+      // Verificar se as credenciais do Supabase estão configuradas corretamente
+      const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL;
+      const supabaseAnon = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY;
+      if (!supabaseUrl || !supabaseAnon) {
+        console.error('Configuração do Supabase inválida');
+        setIsLoading(false);
+        return { success: false, error: 'Erro de configuração do sistema' };
+      }
+      
+      // Remover espaços em branco
+      const trimmedEmail = email.trim();
+      const trimmedPassword = password.trim();
+      const trimmedName = name.trim();
+      
+      // Verificar se a senha atende aos requisitos mínimos
+      if (trimmedPassword.length < 6) {
+        setIsLoading(false);
+        return { success: false, error: 'A senha deve ter pelo menos 6 caracteres' };
+      }
+      
+      // Configurar opções de registro
+      const options = { 
+        data: { full_name: trimmedName },
+        emailRedirectTo: `${window.location.origin}/auth/callback`
+      };
+      
+      console.log('Opções de registro:', options);
+      
+      // Tentar registrar o usuário
       const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { data: { full_name: name } }
+        email: trimmedEmail,
+        password: trimmedPassword,
+        options: options
       });
-      setIsLoading(false);
-      if (error) return { success: false, error: error.message };
-      if (!data.user) return { success: false, error: 'Erro ao criar usuário' };
-      setUser({
+      
+      // Log detalhado da resposta para depuração
+      console.log('Resposta completa do registro:', { data, error });
+      
+      if (error) {
+        console.error('Erro no registro:', error.message, error.status);
+        
+        // Mensagens de erro mais amigáveis
+        let errorMessage = error.message;
+        if (error.message.includes('already registered')) {
+          errorMessage = 'Este email já está registrado. Por favor, faça login ou use outro email.';
+        } else if (error.message.includes('password')) {
+          errorMessage = 'A senha não atende aos requisitos de segurança. Use pelo menos 6 caracteres.';
+        }
+        
+        setIsLoading(false);
+        return { success: false, error: errorMessage };
+      }
+      
+      if (!data || !data.user) {
+        console.error('Registro sem dados de usuário');
+        setIsLoading(false);
+        return { success: false, error: 'Erro ao criar usuário' };
+      }
+      
+      console.log('Registro bem-sucedido:', data);
+      
+      // Verificar se o email precisa de confirmação
+      if (data.session === null) {
+        console.log('Email de confirmação enviado. Aguardando confirmação.');
+        setIsLoading(false);
+        return { 
+          success: true, 
+          message: 'Conta criada com sucesso! Por favor, verifique seu email para confirmar seu cadastro.'
+        };
+      }
+      
+      // Salvar usuário no estado
+      const userData = {
         id: data.user.id,
-        name,
-        email,
+        name: trimmedName,
+        email: trimmedEmail,
         avatar: data.user.user_metadata?.avatar_url,
-        user_metadata: { full_name: name }
-      });
+        user_metadata: { full_name: trimmedName }
+      };
+      
+      setUser(userData);
+      console.log('Usuário definido no estado:', userData);
+      
+      // Salvar na sessão do navegador para persistência
+      localStorage.setItem('tickrify-user', JSON.stringify(userData));
+      
+      setIsLoading(false);
       return { success: true };
     } catch (error: any) {
+      console.error('Erro inesperado no registro:', error);
       setIsLoading(false);
-      return { success: false, error: error.message };
+      return { success: false, error: 'Ocorreu um erro ao criar sua conta. Por favor, tente novamente.' };
     }
   };
 
@@ -106,7 +250,12 @@ export function useAuth() {
 
   const loginWithGoogle = async () => {
     setIsLoading(true);
-    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`
+      }
+    });
     setIsLoading(false);
     if (error) throw error;
   };

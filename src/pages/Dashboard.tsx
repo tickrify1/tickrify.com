@@ -75,17 +75,17 @@ const Dashboard: React.FC = () => {
 
         {/* Usage Stats Card */}
         <div className="relative">
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
             <div className="bg-blue-600 p-6">
               <div className="flex items-center space-x-4">
                 <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
                   <Activity className="w-7 h-7 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-semibold text-white">
+                    <h2 className="text-lg sm:text-xl font-semibold text-white">
                     Uso Mensal - Plano {planType.toUpperCase()}
                   </h2>
-                  <p className="text-white/90">
+                    <p className="text-white/90 text-sm">
                     Acompanhe seu consumo de análises IA
                   </p>
                 </div>
@@ -116,7 +116,7 @@ const Dashboard: React.FC = () => {
                   <div className="w-16 h-16 bg-gray-50 rounded-lg flex items-center justify-center mx-auto mb-4">
                     <BarChart3 className="w-10 h-10 text-purple-600" />
                   </div>
-                  <p className={`text-3xl font-bold mb-2 ${
+                  <p className={`text-2xl sm:text-3xl font-bold mb-2 ${
                     usagePercentage > 80 ? 'text-red-600' : 
                     usagePercentage > 60 ? 'text-yellow-600' : 'text-green-600'
                   }`}>

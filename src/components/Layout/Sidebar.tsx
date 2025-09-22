@@ -77,7 +77,7 @@ export function Sidebar({ currentPage, onNavigate, isMobile }: SidebarProps) {
   ];
 
   return (
-    <div className={`bg-white border-r border-gray-200 flex flex-col h-full transition-all duration-300 ${
+    <div className={`bg-white border-r border-gray-200 flex flex-col h-full transition-all duration-300 overflow-hidden ${
       isCollapsed ? 'w-16' : (isMobile ? 'w-64' : 'w-64')
     }`}>
       {/* Botão de emergência para expandir sempre visível */}
@@ -168,7 +168,7 @@ export function Sidebar({ currentPage, onNavigate, isMobile }: SidebarProps) {
       )}
 
       {/* Navigation */}
-      <nav className="flex-1 p-4">
+      <nav className="flex-1 p-4 overflow-y-auto">
         <div className="space-y-1">
           {menuItems.map((item) => {
             const Icon = item.icon;
@@ -213,7 +213,7 @@ export function Sidebar({ currentPage, onNavigate, isMobile }: SidebarProps) {
                 <p className="text-sm font-medium text-gray-900 truncate">
                   {displayName}
                 </p>
-                <p className="text-xs text-gray-500 truncate">
+                <p className="text-xs text-gray-500 truncate break-words">
                   {user?.email || 'email@exemplo.com'}
                 </p>
               </div>
