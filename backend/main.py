@@ -8,6 +8,7 @@ from fastapi import FastAPI, HTTPException, Body, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import json
+import re
 from dotenv import load_dotenv
 import stripe
 from .auth import AuthMiddleware, get_current_user_from_request
@@ -24,9 +25,11 @@ load_dotenv()
 app = FastAPI(title="Tickrify API", version="1.0.0")
 
 # Configurar CORS para permitir conexões do frontend
+cors_origins_env = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:5174,http://localhost:3000")
+allow_origins = [o.strip() for o in cors_origins_env.split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:5174", "http://localhost:3000", "*"],  # Adicione seus domínios de produção
+    allow_origins=allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -555,7 +558,7 @@ async def health_check():
     
     return {
         "status": "healthy",
-        "openai_available": openai_client is not None,
+        "openai_available": OPENAI_AVAILABLE,
         "database_connected": db_healthy,
         "timestamp": datetime.now().isoformat()
     }

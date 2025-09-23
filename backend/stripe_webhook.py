@@ -39,6 +39,16 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
             print(f"❌ Assinatura inválida: {e}")
             raise HTTPException(status_code=400, detail="Assinatura inválida")
         
+        # Idempotência: evitar reprocessamento
+        try:
+            from .database import supabase_client
+            exists = supabase_client.table("stripe_webhook_events").select("id").eq("id", event["id"]).execute()
+            if exists.data:
+                return {"status": "ignored", "reason": "duplicate", "event_id": event["id"]}
+            supabase_client.table("stripe_webhook_events").insert({"id": event["id"]}).execute()
+        except Exception as _:
+            pass
+
         # Log do tipo de evento
         print(f"✅ Evento Stripe validado: {event['type']}")
         

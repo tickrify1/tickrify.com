@@ -114,6 +114,12 @@ CREATE TRIGGER update_users_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
+-- Tabela para idempotência de webhooks Stripe (evita reprocessar eventos)
+CREATE TABLE IF NOT EXISTS stripe_webhook_events (
+    id TEXT PRIMARY KEY,
+    received_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 CREATE TRIGGER update_subscriptions_updated_at
     BEFORE UPDATE ON subscriptions
     FOR EACH ROW
