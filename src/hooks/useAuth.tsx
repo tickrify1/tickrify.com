@@ -68,7 +68,7 @@ export function useAuth() {
       if (!supabaseUrl || !supabaseAnon) {
         console.error('Configuração do Supabase inválida');
         setIsLoading(false);
-        return { success: false, error: 'Erro de configuração do sistema' };
+        return { success: false, error: 'Sistema sem autenticação configurada' };
       }
       
       // Tentar login com as credenciais fornecidas
@@ -139,7 +139,7 @@ export function useAuth() {
       if (!supabaseUrl || !supabaseAnon) {
         console.error('Configuração do Supabase inválida');
         setIsLoading(false);
-        return { success: false, error: 'Erro de configuração do sistema' };
+        return { success: false, error: 'Sistema sem autenticação configurada' };
       }
       
       // Remover espaços em branco
