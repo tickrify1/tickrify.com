@@ -228,12 +228,24 @@ export function useAuth() {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      // Encerrar sessão no Supabase
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error('Erro ao sair da sessão:', error);
+    }
+
+    // Limpar estado e storage local
     setUser(null);
-    // Force redirect to landing page
+    try {
+      localStorage.removeItem('tickrify-user');
+    } catch (_) {}
+
+    // Redirecionar para a landing (ou recarregar)
     setTimeout(() => {
-      window.location.reload();
-    }, 100);
+      window.location.href = '/';
+    }, 50);
   };
 
   const updateProfile = async (updates: Partial<User>): Promise<AuthResult> => {
