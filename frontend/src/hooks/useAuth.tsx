@@ -21,11 +21,39 @@ export interface AuthResult {
 export function useAuth() {
   const [user, setUser] = useLocalStorage<User | null>('tickrify-user', null);
   const [isLoading, setIsLoading] = useState(true);
+  // Detectar se o Supabase está configurado
+  const supabaseUrlEnv = (import.meta as any).env?.VITE_SUPABASE_URL;
+  const supabaseAnonEnv = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY;
+  const hasSupabase = !!supabaseUrlEnv && !!supabaseAnonEnv;
+
+  // Utilidades de fallback local (sem Supabase)
+  const getLocalUsers = (): Array<User & { password?: string }> => {
+    try {
+      const raw = localStorage.getItem('tickrify-local-users');
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const setLocalUsers = (users: Array<User & { password?: string }>) => {
+    try {
+      localStorage.setItem('tickrify-local-users', JSON.stringify(users));
+    } catch {}
+  };
+
+  const generateLocalId = () => `local-${Math.random().toString(36).slice(2)}-${Date.now()}`;
 
   useEffect(() => {
-    // Buscar usuário autenticado do Supabase ao inicializar
+    // Buscar usuário autenticado ao inicializar
     (async () => {
       try {
+        if (!hasSupabase) {
+          // Fallback local: apenas finalizar o loading, `useLocalStorage` já traz o usuário salvo
+          console.log('⚙️ Supabase não configurado - usando modo local de autenticação');
+          return;
+        }
+
         console.log('Verificando sessão do usuário...');
         const { data: sessionData } = await supabase.auth.getSession();
         console.log('Sessão:', sessionData);
@@ -62,13 +90,27 @@ export function useAuth() {
     try {
       console.log('Tentando login com:', email);
       
-      // Verificar se as credenciais do Supabase estão configuradas corretamente
-      const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL;
-      const supabaseAnon = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY;
-      if (!supabaseUrl || !supabaseAnon) {
-        console.error('Configuração do Supabase inválida');
+      // Fallback local quando Supabase não está configurado
+      if (!hasSupabase) {
+        const users = getLocalUsers();
+        const found = users.find(u => u.email?.toLowerCase() === email.trim().toLowerCase());
+        if (!found || (found as any).password !== password.trim()) {
+          setIsLoading(false);
+          return { success: false, error: 'Email ou senha incorretos. Por favor, verifique suas credenciais.' };
+        }
+
+        const userData = {
+          id: found.id,
+          name: found.user_metadata?.full_name || found.name || found.email,
+          email: found.email,
+          avatar: found.avatar,
+          user_metadata: { full_name: found.user_metadata?.full_name || found.name }
+        } as User;
+
+        setUser(userData);
+        localStorage.setItem('tickrify-user', JSON.stringify(userData));
         setIsLoading(false);
-        return { success: false, error: 'Sistema sem autenticação configurada' };
+        return { success: true };
       }
       
       // Tentar login com as credenciais fornecidas
@@ -133,13 +175,41 @@ export function useAuth() {
     try {
       console.log('Tentando registrar:', email);
       
-      // Verificar se as credenciais do Supabase estão configuradas corretamente
-      const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL;
-      const supabaseAnon = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY;
-      if (!supabaseUrl || !supabaseAnon) {
-        console.error('Configuração do Supabase inválida');
+      // Fallback local quando Supabase não está configurado
+      if (!hasSupabase) {
+        const trimmedEmail = email.trim();
+        const trimmedPassword = password.trim();
+        const trimmedName = name.trim();
+
+        if (trimmedPassword.length < 6) {
+          setIsLoading(false);
+          return { success: false, error: 'A senha deve ter pelo menos 6 caracteres' };
+        }
+
+        const users = getLocalUsers();
+        const already = users.find(u => u.email?.toLowerCase() === trimmedEmail.toLowerCase());
+        if (already) {
+          setIsLoading(false);
+          return { success: false, error: 'Este email já está registrado. Por favor, faça login ou use outro email.' };
+        }
+
+        const newUser: User & { password?: string } = {
+          id: generateLocalId(),
+          name: trimmedName || trimmedEmail,
+          email: trimmedEmail,
+          user_metadata: { full_name: trimmedName },
+          avatar: undefined,
+          password: trimmedPassword
+        };
+
+        users.push(newUser);
+        setLocalUsers(users);
+
+        const { password: _pw, ...safeUser } = newUser;
+        setUser(safeUser);
+        localStorage.setItem('tickrify-user', JSON.stringify(safeUser));
         setIsLoading(false);
-        return { success: false, error: 'Sistema sem autenticação configurada' };
+        return { success: true };
       }
       
       // Remover espaços em branco

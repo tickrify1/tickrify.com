@@ -564,7 +564,7 @@ async def health_check():
     }
 
 @app.post("/api/analyze-chart", response_model=ChartAnalysisResponse)
-async def analyze_chart(request: ChartAnalysisRequest = Body(...), current_user: Optional[User] = Depends(AuthMiddleware.get_current_user)):
+async def analyze_chart(request: ChartAnalysisRequest = Body(...), current_user: Optional[User] = Depends(get_current_user_from_request)):
     """
     Endpoint principal para análise de gráficos
     """

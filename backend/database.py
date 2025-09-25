@@ -3,26 +3,35 @@ from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel
 from dotenv import load_dotenv
-import supabase
-from supabase import create_client, Client
+try:
+    import supabase
+    from supabase import create_client, Client
+except Exception:
+    supabase = None
+    create_client = None  # type: ignore
+    Client = object  # type: ignore
 
 # Carregar variáveis de ambiente
 load_dotenv()
 
-# Configurar cliente Supabase
+# Configurar cliente Supabase (modo tolerante para desenvolvimento)
 supabase_url = os.getenv("SUPABASE_URL")
 supabase_key = os.getenv("SUPABASE_SERVICE_KEY")
 
-if not supabase_url or not supabase_key:
-    raise ValueError("SUPABASE_URL e SUPABASE_SERVICE_KEY devem ser definidos no arquivo .env")
+SUPABASE_ENABLED = bool(supabase_url and supabase_key and create_client)
+supabase_client: Client | None = None  # type: ignore
 
-# Inicializar cliente Supabase
-try:
-    supabase_client: Client = create_client(supabase_url, supabase_key)
-    print("✅ Conexão com Supabase estabelecida com sucesso")
-except Exception as e:
-    print(f"❌ Erro ao conectar com Supabase: {e}")
-    raise
+if SUPABASE_ENABLED:
+    try:
+        supabase_client = create_client(supabase_url, supabase_key)  # type: ignore[arg-type]
+        print("✅ Conexão com Supabase estabelecida com sucesso")
+    except Exception as e:
+        print(f"❌ Erro ao conectar com Supabase: {e}")
+        print("⚠️ Continuando sem Supabase (modo offline/dev)")
+        SUPABASE_ENABLED = False
+        supabase_client = None
+else:
+    print("⚠️ SUPABASE_URL/SUPABASE_SERVICE_KEY ausentes - modo offline/dev ativado")
 
 # Modelos de dados
 class User(BaseModel):
@@ -73,6 +82,8 @@ class Database:
     @staticmethod
     async def get_user(user_id: str) -> Optional[User]:
         """Busca um usuário pelo ID"""
+        if not SUPABASE_ENABLED or not supabase_client:
+            return None
         try:
             response = supabase_client.table("users").select("*").eq("id", user_id).execute()
             if response.data and len(response.data) > 0:
@@ -85,6 +96,8 @@ class Database:
     @staticmethod
     async def get_user_by_email(email: str) -> Optional[User]:
         """Busca um usuário pelo email"""
+        if not SUPABASE_ENABLED or not supabase_client:
+            return None
         try:
             response = supabase_client.table("users").select("*").eq("email", email).execute()
             if response.data and len(response.data) > 0:
@@ -97,6 +110,8 @@ class Database:
     @staticmethod
     async def create_user(user_data: Dict[str, Any]) -> Optional[User]:
         """Cria um novo usuário"""
+        if not SUPABASE_ENABLED or not supabase_client:
+            return None
         try:
             user_data["created_at"] = datetime.now().isoformat()
             user_data["updated_at"] = datetime.now().isoformat()
@@ -112,6 +127,8 @@ class Database:
     @staticmethod
     async def update_user(user_id: str, user_data: Dict[str, Any]) -> Optional[User]:
         """Atualiza um usuário existente"""
+        if not SUPABASE_ENABLED or not supabase_client:
+            return None
         try:
             user_data["updated_at"] = datetime.now().isoformat()
             
@@ -126,6 +143,9 @@ class Database:
     @staticmethod
     async def get_active_subscription(user_id: str) -> Optional[Subscription]:
         """Busca a assinatura ativa de um usuário"""
+        if not SUPABASE_ENABLED or not supabase_client:
+            # Modo offline: nenhuma assinatura ativa
+            return None
         try:
             response = supabase_client.table("subscriptions").select("*").eq("user_id", user_id).eq("is_active", True).execute()
             if response.data and len(response.data) > 0:
@@ -161,6 +181,8 @@ class Database:
     @staticmethod
     async def create_subscription(subscription_data: Dict[str, Any]) -> Optional[Subscription]:
         """Cria uma nova assinatura"""
+        if not SUPABASE_ENABLED or not supabase_client:
+            return None
         try:
             subscription_data["created_at"] = datetime.now().isoformat()
             subscription_data["updated_at"] = datetime.now().isoformat()
@@ -181,6 +203,8 @@ class Database:
     @staticmethod
     async def update_subscription(subscription_id: str, subscription_data: Dict[str, Any]) -> Optional[Subscription]:
         """Atualiza uma assinatura existente"""
+        if not SUPABASE_ENABLED or not supabase_client:
+            return None
         try:
             subscription_data["updated_at"] = datetime.now().isoformat()
             
@@ -195,6 +219,8 @@ class Database:
     @staticmethod
     async def cancel_subscription(subscription_id: str) -> bool:
         """Cancela uma assinatura"""
+        if not SUPABASE_ENABLED or not supabase_client:
+            return False
         try:
             response = supabase_client.table("subscriptions").update({
                 "is_active": False,
@@ -210,6 +236,8 @@ class Database:
     @staticmethod
     async def save_analysis(analysis_data: Dict[str, Any]) -> Optional[Analysis]:
         """Salva uma análise"""
+        if not SUPABASE_ENABLED or not supabase_client:
+            return None
         try:
             analysis_data["created_at"] = datetime.now().isoformat()
             
@@ -224,6 +252,8 @@ class Database:
     @staticmethod
     async def get_user_analyses(user_id: str, limit: int = 50) -> List[Analysis]:
         """Busca análises de um usuário"""
+        if not SUPABASE_ENABLED or not supabase_client:
+            return []
         try:
             response = supabase_client.table("analyses").select("*").eq("user_id", user_id).order("created_at", desc=True).limit(limit).execute()
             if response.data:
@@ -236,6 +266,8 @@ class Database:
     @staticmethod
     async def get_monthly_usage(user_id: str) -> int:
         """Busca o uso mensal de um usuário"""
+        if not SUPABASE_ENABLED or not supabase_client:
+            return 0
         try:
             current_month_year = datetime.now().strftime("%m-%Y")
             
@@ -251,6 +283,9 @@ class Database:
     @staticmethod
     async def increment_monthly_usage(user_id: str) -> int:
         """Incrementa o uso mensal de um usuário"""
+        if not SUPABASE_ENABLED or not supabase_client:
+            # Em modo offline apenas retorna 1 para indicar incremento virtual
+            return 1
         try:
             current_month_year = datetime.now().strftime("%m-%Y")
             now = datetime.now().isoformat()
@@ -290,6 +325,8 @@ class Database:
     @staticmethod
     async def get_subscription_by_stripe_id(stripe_subscription_id: str) -> Optional[Subscription]:
         """Busca uma assinatura pelo ID do Stripe"""
+        if not SUPABASE_ENABLED or not supabase_client:
+            return None
         try:
             response = supabase_client.table("subscriptions").select("*").eq("stripe_subscription_id", stripe_subscription_id).execute()
             if response.data and len(response.data) > 0:
@@ -302,6 +339,8 @@ class Database:
     @staticmethod
     async def get_user_by_stripe_customer_id(stripe_customer_id: str) -> Optional[User]:
         """Busca um usuário pelo ID de cliente do Stripe"""
+        if not SUPABASE_ENABLED or not supabase_client:
+            return None
         try:
             # Primeiro, encontre a assinatura com este customer_id
             sub_response = supabase_client.table("subscriptions").select("user_id").eq("stripe_customer_id", stripe_customer_id).execute()
