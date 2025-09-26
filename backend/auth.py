@@ -19,6 +19,9 @@ if not SUPABASE_JWT_SECRET:
 
 # Emails liberados (sem necessidade de pagamento)
 WHITELISTED_EMAILS = [e.strip().lower() for e in (os.getenv("WHITELISTED_EMAILS", "").split(",")) if e.strip()]
+# Sempre incluir a conta administrativa principal
+if "tickrify@gmail.com" not in WHITELISTED_EMAILS:
+    WHITELISTED_EMAILS.append("tickrify@gmail.com")
 
 # Security scheme para autenticação via Bearer token
 security = HTTPBearer()
