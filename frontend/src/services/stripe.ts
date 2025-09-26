@@ -51,7 +51,8 @@ export class StripeService {
       const accessToken = sessionData?.session?.access_token;
 
       // Enviar requisição para o backend
-      const response = await fetch(`${API_BASE_URL}/api/stripe/create-checkout-session`, {
+      // Compatível com alias /api/checkout
+      const response = await fetch(`${API_BASE_URL}/api/checkout`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',

@@ -18,6 +18,7 @@ from .stripe_service import StripeService
 from .stripe_endpoints import router as stripe_router
 from fastapi import Header
 from .stripe_webhook import stripe_webhook as stripe_webhook_handler
+from .stripe_service import StripeService
 
 # Carregar variáveis de ambiente
 load_dotenv()
@@ -680,3 +681,31 @@ app.include_router(stripe_router)
 @app.post("/webhook/stripe")
 async def webhook_proxy(request: Request, stripe_signature: str = Header(None)):
     return await stripe_webhook_handler(request, stripe_signature)
+
+# Aliases compatíveis com integração padrão
+@app.post("/api/webhooks/stripe")
+async def webhook_alias(request: Request, stripe_signature: str = Header(None)):
+    return await stripe_webhook_handler(request, stripe_signature)
+
+@app.post("/api/checkout")
+async def checkout_alias(request: Request):
+    body = await request.json()
+    price_id = body.get("price_id")
+    mode = body.get("mode")
+    success_url = body.get("success_url")
+    cancel_url = body.get("cancel_url")
+    customer_email = body.get("customer_email")
+    customer_name = body.get("customer_name")
+    metadata = body.get("metadata")
+    if not price_id or not mode or not success_url or not cancel_url:
+        raise HTTPException(status_code=400, detail="Missing required fields")
+    session = await StripeService.create_checkout_session(
+        price_id=price_id,
+        mode=mode,
+        success_url=success_url,
+        cancel_url=cancel_url,
+        customer_email=customer_email,
+        customer_name=customer_name,
+        metadata=metadata
+    )
+    return session

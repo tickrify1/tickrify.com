@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
     is_active BOOLEAN NOT NULL DEFAULT FALSE,
     start_date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     end_date TIMESTAMP WITH TIME ZONE,
+    active_until TIMESTAMP WITH TIME ZONE,
     status TEXT NOT NULL CHECK (status IN ('active', 'canceled', 'past_due', 'trialing')),
     stripe_customer_id TEXT,
     stripe_subscription_id TEXT,
@@ -96,6 +97,7 @@ CREATE POLICY "Usuários podem ver seus próprios limites de uso"
 -- Índices para melhorar performance
 CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id ON subscriptions(user_id);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_stripe_subscription_id ON subscriptions(stripe_subscription_id);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_active_until ON subscriptions(active_until);
 CREATE INDEX IF NOT EXISTS idx_analyses_user_id ON analyses(user_id);
 CREATE INDEX IF NOT EXISTS idx_usage_limits_user_id_month_year ON usage_limits(user_id, month_year);
 

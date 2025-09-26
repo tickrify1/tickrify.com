@@ -50,6 +50,7 @@ class Subscription(BaseModel):
     is_active: bool
     start_date: datetime
     end_date: Optional[datetime] = None
+    active_until: Optional[datetime] = None
     status: str  # 'active', 'canceled', 'past_due', 'trialing'
     stripe_customer_id: Optional[str] = None
     stripe_subscription_id: Optional[str] = None
@@ -149,7 +150,11 @@ class Database:
         try:
             response = supabase_client.table("subscriptions").select("*").eq("user_id", user_id).eq("is_active", True).execute()
             if response.data and len(response.data) > 0:
-                return Subscription(**response.data[0])
+                sub = Subscription(**response.data[0])
+                # Validar active_until
+                if sub.active_until and sub.active_until < datetime.now():
+                    return None
+                return sub
             # Fallback: liberar whitelisted sem precisar pagar
             try:
                 # Buscar usuário para obter email

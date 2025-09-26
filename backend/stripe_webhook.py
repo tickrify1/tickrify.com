@@ -59,6 +59,9 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
         elif event["type"] == "invoice.payment_succeeded":
             await handle_invoice_payment_succeeded(event["data"]["object"])
         
+        elif event["type"] == "invoice.payment_failed":
+            await handle_invoice_payment_failed(event["data"]["object"])
+        
         elif event["type"] == "customer.subscription.updated":
             await handle_subscription_updated(event["data"]["object"])
         
@@ -130,6 +133,7 @@ async def handle_checkout_session_completed(session):
                 "is_active": True,
                 "start_date": datetime.now(),
                 "end_date": end_date,
+                "active_until": datetime.now() + timedelta(days=30),
                 "status": subscription.status,
                 "stripe_customer_id": customer_id,
                 "stripe_subscription_id": subscription_id
@@ -203,6 +207,7 @@ async def handle_invoice_payment_succeeded(invoice):
                 "is_active": True,
                 "start_date": datetime.now(),
                 "end_date": end_date,
+                "active_until": datetime.now() + timedelta(days=30),
                 "status": stripe_subscription.status,
                 "stripe_customer_id": customer_id,
                 "stripe_subscription_id": subscription_id
@@ -230,7 +235,8 @@ async def handle_invoice_payment_succeeded(invoice):
             subscription_update = {
                 "is_active": True,
                 "status": stripe_subscription.status,
-                "end_date": end_date
+                "end_date": end_date,
+                "active_until": datetime.now() + timedelta(days=30)
             }
             
             # Salvar no banco de dados
@@ -305,6 +311,25 @@ async def handle_subscription_deleted(subscription):
             print(f"✅ Assinatura cancelada com sucesso: {db_subscription.id}")
         else:
             print(f"❌ Erro ao cancelar assinatura {db_subscription.id}")
+
+async def handle_invoice_payment_failed(invoice):
+    """Marca assinatura como inativa em caso de falha de pagamento"""
+    try:
+        subscription_id = invoice.get("subscription")
+        if not subscription_id:
+            print("⚠️ Falha sem subscription_id, ignorando")
+            return
+        db_subscription = await Database.get_subscription_by_stripe_id(subscription_id)
+        if not db_subscription:
+            print(f"⚠️ Assinatura não encontrada para falha: {subscription_id}")
+            return
+        await Database.update_subscription(db_subscription.id, {
+            "is_active": False,
+            "status": "past_due"
+        })
+        print(f"❌ Pagamento falhou, assinatura marcada como inativa: {db_subscription.id}")
+    except Exception as e:
+        print(f"❌ Erro ao processar invoice.payment_failed: {e}")
     
     except Exception as e:
         print(f"❌ Erro ao processar customer.subscription.deleted: {e}")
