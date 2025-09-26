@@ -109,17 +109,36 @@ class AuthMiddleware:
         return subscription
     
     @staticmethod
-    async def require_active_subscription(subscription: Optional[Subscription] = Depends(get_current_active_subscription)) -> Subscription:
-        """Requer uma assinatura ativa (não gratuita)"""
+    async def require_active_subscription(
+        subscription: Optional[Subscription] = Depends(get_current_active_subscription),
+        user: User = Depends(get_current_user)
+    ) -> Subscription:
+        """Requer uma assinatura ativa (não gratuita), com exceção de e-mails whitelisted"""
+        try:
+            user_email = user.email.lower() if user and user.email else None
+            if user_email and user_email in WHITELISTED_EMAILS:
+                # Retornar assinatura virtual liberando todos os recursos
+                return Subscription(
+                    id="whitelist-subscription",
+                    user_id=user.id,
+                    price_id="price_whitelist",
+                    plan_type="trader",
+                    is_active=True,
+                    start_date=datetime.now(),
+                    end_date=None,
+                    status="active",
+                    stripe_customer_id=None,
+                    stripe_subscription_id=None,
+                )
+        except Exception:
+            pass
+
         if not subscription:
             raise HTTPException(status_code=403, detail="Assinatura ativa não encontrada")
-        
         if not subscription.is_active:
             raise HTTPException(status_code=403, detail="Assinatura não está ativa")
-        
         if subscription.plan_type == "free":
             raise HTTPException(status_code=403, detail="Recurso disponível apenas para assinantes premium")
-        
         return subscription
     
     @staticmethod
