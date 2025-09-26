@@ -3,7 +3,7 @@ import { useAuth } from '../hooks/useAuth';
 import supabase from './supabase';
 
 // Carregar Stripe com a chave pública (somente se existir)
-const publishableKey = (import.meta as any).env?.VITE_STRIPE_PUBLISHABLE_KEY as string | undefined;
+const publishableKey = (import.meta as any).env?.VITE_STRIPE_PUBLISHABLE_KEY || (import.meta as any).env?.STRIPE_PUBLIC_KEY as string | undefined;
 const stripePromise = publishableKey ? loadStripe(publishableKey) : Promise.resolve(null as any);
 
 // Tipos para os parâmetros do checkout

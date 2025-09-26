@@ -12,6 +12,7 @@ import re
 from dotenv import load_dotenv
 import stripe
 from .auth import AuthMiddleware, get_current_user_from_request
+from .database import Subscription
 from .database import Database, User, Subscription
 from .error_handler import register_exception_handlers, APIException
 from .stripe_service import StripeService
@@ -565,7 +566,12 @@ async def health_check():
     }
 
 @app.post("/api/analyze-chart", response_model=ChartAnalysisResponse)
-async def analyze_chart(request: ChartAnalysisRequest = Body(...), current_user: Optional[User] = Depends(get_current_user_from_request)):
+async def analyze_chart(
+    request: ChartAnalysisRequest = Body(...),
+    # Exigir assinatura ativa para usar a análise
+    subscription: Subscription = Depends(AuthMiddleware.require_active_subscription),
+    current_user: Optional[User] = Depends(get_current_user_from_request)
+):
     """
     Endpoint principal para análise de gráficos
     """
