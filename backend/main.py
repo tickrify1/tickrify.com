@@ -565,6 +565,11 @@ async def health_check():
         "timestamp": datetime.now().isoformat()
     }
 
+# Alias para ambientes onde a aplicação fica atrás de /api (ex.: Vercel)
+@app.get("/api/health")
+async def health_check_api():
+    return await health_check()
+
 @app.post("/api/analyze-chart", response_model=ChartAnalysisResponse)
 async def analyze_chart(
     request: ChartAnalysisRequest = Body(...),
