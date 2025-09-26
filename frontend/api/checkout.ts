@@ -1,12 +1,14 @@
 import Stripe from 'stripe';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-export default async function handler(req: Request): Promise<Response> {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
-    return new Response('Method Not Allowed', { status: 405 });
+    res.status(405).send('Method Not Allowed');
+    return;
   }
 
   try {
-    const body = await req.json();
+    const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
     const {
       price_id: priceId,
       mode,
@@ -15,15 +17,17 @@ export default async function handler(req: Request): Promise<Response> {
       customer_email: customerEmail,
       customer_name: customerName,
       metadata,
-    } = body || {};
+    } = body;
 
-    const secretKey = process.env.STRIPE_SECRET_KEY;
+    const secretKey = process.env.STRIPE_SECRET_KEY as string | undefined;
     if (!secretKey) {
-      return new Response(JSON.stringify({ error: 'Missing STRIPE_SECRET_KEY' }), { status: 500 });
+      res.status(500).json({ error: 'Missing STRIPE_SECRET_KEY' });
+      return;
     }
 
     if (!priceId || !successUrl || !cancelUrl) {
-      return new Response(JSON.stringify({ error: 'Missing required fields' }), { status: 400 });
+      res.status(400).json({ error: 'Missing required fields' });
+      return;
     }
 
     const stripe = new Stripe(secretKey, { apiVersion: '2024-06-20' });
@@ -45,12 +49,9 @@ export default async function handler(req: Request): Promise<Response> {
       metadata,
     });
 
-    return new Response(
-      JSON.stringify({ session_id: session.id, url: session.url }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
-    );
+    res.status(200).json({ session_id: session.id, url: session.url });
   } catch (err: any) {
-    return new Response(JSON.stringify({ error: err?.message || 'Checkout error' }), { status: 400 });
+    res.status(400).json({ error: err?.message || 'Checkout error' });
   }
 }
 
