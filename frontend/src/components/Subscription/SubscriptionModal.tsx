@@ -34,10 +34,10 @@ const PlanCard = ({ product, isCurrentPlan, isSelected, selectable, handlePlanSe
     {product.popular && <Badge><Star className="w-4 h-4" /><span>POPULAR</span></Badge>}
     {isCurrentPlan && <Badge className="right-4"><div className="bg-green-600 text-white px-3 py-1 rounded-full text-xs font-bold">ATUAL</div></Badge>}
     <div className="text-center mb-4 sm:mb-6">
-      <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center mx-auto mb-2 sm:mb-4 ${product.popular ? 'bg-blue-600' : 'bg-gray-600'}`}>{product.name === 'Trader' && <Zap className="w-6 h-6 sm:w-8 sm:h-8 text-white" />}</div>
+      <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center mx-auto mb-2 sm:mb-4 ${product.popular ? 'bg-blue-600' : 'bg-gray-600'}`}><Zap className="w-6 h-6 sm:w-8 sm:h-8 text-white" /></div>
       <h3 className="text-lg sm:text-2xl font-bold text-gray-900 mb-1 sm:mb-2">{product.name}</h3>
       <div className="text-2xl sm:text-4xl font-bold text-gray-900 mb-1">{formatPrice(product.price)}</div>
-      <p className="text-gray-600 text-xs sm:text-base">por mês</p>
+      <p className="text-gray-600 text-xs sm:text-base">{product.interval === 'year' ? 'por ano' : 'por mês'}</p>
     </div>
     <div className="space-y-2 sm:space-y-3 mb-4 sm:mb-8">
       {product.features?.map((feature, index) => (

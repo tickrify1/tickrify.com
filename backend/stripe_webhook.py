@@ -311,8 +311,11 @@ async def handle_subscription_deleted(subscription):
 
 def map_price_id_to_plan_type(price_id: str) -> str:
     """Mapeia o price_id do Stripe para o tipo de plano"""
+    monthly_id = os.getenv("STRIPE_PRICE_TRADER_MONTHLY", "price_1RjU3gB1hl0IoocUWlz842SY")
+    yearly_id = os.getenv("STRIPE_PRICE_TRADER_YEARLY", "price_1RjU3gB1hl0IoocUWlz842SY")
     price_map = {
-        "price_1RjU3gB1hl0IoocUWlz842SY": "trader"
+        monthly_id: "trader",
+        yearly_id: "trader",
     }
     
     return price_map.get(price_id, "free")

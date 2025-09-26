@@ -11,14 +11,25 @@ export interface StripeProduct {
   popular?: boolean;
 }
 
+// Carregar IDs de preços do Stripe via variáveis de ambiente (Vite)
+const env: any = (import.meta as any).env || {};
+const TRADER_MONTHLY_PRICE_ID = env.VITE_STRIPE_PRICE_TRADER_MONTHLY || 'price_trader_monthly_placeholder';
+const TRADER_YEARLY_PRICE_ID = env.VITE_STRIPE_PRICE_TRADER_YEARLY || 'price_trader_yearly_placeholder';
+
+// Valores exibidos no UI (opcionalmente configuráveis)
+const TRADER_MONTHLY_AMOUNT = Number(env.VITE_STRIPE_PRICE_TRADER_MONTHLY_AMOUNT || 59.90);
+const TRADER_YEARLY_AMOUNT = Number(
+  env.VITE_STRIPE_PRICE_TRADER_YEARLY_AMOUNT || (TRADER_MONTHLY_AMOUNT * 10).toFixed(2)
+);
+
 export const stripeProducts: StripeProduct[] = [
   {
     id: 'prod_SenfkI77B5gR7Q',
-    priceId: 'price_1RjU3gB1hl0IoocUWlz842SY',
-    name: 'Trader',
+    priceId: TRADER_MONTHLY_PRICE_ID,
+    name: 'Trader Mensal',
     description: 'Ideal para traders ativos que precisam de análises frequentes com IA avançada. Inclui 120 análises mensais com Tickrify IA, alertas personalizados e ferramentas avançadas.',
     mode: 'subscription',
-    price: 59.90,
+    price: TRADER_MONTHLY_AMOUNT,
     currency: 'BRL',
     interval: 'month',
     features: [
@@ -30,6 +41,26 @@ export const stripeProducts: StripeProduct[] = [
       'Padrões gráficos automáticos',
       'Suporte por email'
     ]
+  },
+  {
+    id: 'prod_SenfkI77B5gR7Q_yearly',
+    priceId: TRADER_YEARLY_PRICE_ID,
+    name: 'Trader Anual',
+    description: 'Plano anual do Trader com os mesmos recursos do mensal, com economia no pacote anual.',
+    mode: 'subscription',
+    price: TRADER_YEARLY_AMOUNT,
+    currency: 'BRL',
+    interval: 'year',
+    features: [
+      '120 análises IA por mês',
+      'Tickrify IA avançada',
+      'Análise de imagens de gráficos',
+      'Indicadores técnicos avançados',
+      'Alertas personalizados',
+      'Padrões gráficos automáticos',
+      'Suporte por email'
+    ],
+    popular: true
   },
   
 ];

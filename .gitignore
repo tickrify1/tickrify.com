@@ -41,3 +41,7 @@ __pycache__/
 venv/
 env/
 .venv/
+examples/stripe-sample-code-2/node_modules
+examples/stripe-sample-code-2/.env
+examples/stripe-sample-code-2/.env.local
+stripe-sample-code-2.zip
