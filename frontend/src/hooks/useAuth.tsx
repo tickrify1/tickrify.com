@@ -83,6 +83,35 @@ export function useAuth() {
         setIsLoading(false);
       }
     })();
+
+    // Assinar mudanças de sessão para manter estado em tempo real
+    const { data: authListener } = (supabase as any)?.auth?.onAuthStateChange?.((event: any, session: any) => {
+      try {
+        if (session?.user) {
+          const u = session.user;
+          const userData: User = {
+            id: u.id,
+            name: u.user_metadata?.full_name || u.email || '',
+            email: u.email || '',
+            avatar: u.user_metadata?.avatar_url,
+            user_metadata: u.user_metadata
+          };
+          setUser(userData);
+          localStorage.setItem('tickrify-user', JSON.stringify(userData));
+        } else {
+          setUser(null);
+          try { localStorage.removeItem('tickrify-user'); } catch {}
+        }
+      } catch (e) {
+        console.error('Erro no onAuthStateChange:', e);
+      } finally {
+        setIsLoading(false);
+      }
+    }) || { data: { unsubscribe: () => {} } };
+
+    return () => {
+      try { authListener?.subscription?.unsubscribe?.(); } catch {}
+    };
   }, []);
 
   const login = async (email: string, password: string): Promise<AuthResult> => {
