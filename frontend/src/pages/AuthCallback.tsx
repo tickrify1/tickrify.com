@@ -19,6 +19,19 @@ export function AuthCallback() {
         // Log dos parâmetros para depuração
         console.log('Hash params:', Object.fromEntries(hashParams.entries()));
         console.log('Query params:', Object.fromEntries(queryParams.entries()));
+
+        // Trocar o "code" por sessão (PKCE/OAuth) quando presente
+        const hasCode = queryParams.get('code');
+        if (hasCode) {
+          const { data: exchData, error: exchErr } = await (supabase as any).auth.exchangeCodeForSession(window.location.href);
+          if (exchErr) {
+            console.error('Erro ao trocar code por sessão:', exchErr);
+            setError(exchErr.message);
+            setLoading(false);
+            return;
+          }
+          console.log('Sessão obtida via exchangeCodeForSession:', exchData);
+        }
         
         // Processar a sessão do Supabase
         const { data, error } = await supabase.auth.getSession();
