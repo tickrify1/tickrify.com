@@ -1,7 +1,6 @@
 import Stripe from 'stripe';
-import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
     res.status(405).send('Method Not Allowed');
     return;
@@ -30,7 +29,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
 
-    const stripe = new Stripe(secretKey, { apiVersion: '2024-06-20' });
+    const stripe = new Stripe(secretKey);
 
     let checkoutMode = mode as 'payment' | 'subscription' | undefined;
     if (!checkoutMode) {

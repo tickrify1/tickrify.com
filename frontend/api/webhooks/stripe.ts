@@ -1,13 +1,8 @@
 import Stripe from 'stripe';
-import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
+export const config = { api: { bodyParser: false } } as any;
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
     res.status(405).send('Method Not Allowed');
     return;
@@ -20,7 +15,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  const stripe = new Stripe(secretKey, { apiVersion: '2024-06-20' });
+  const stripe = new Stripe(secretKey);
 
   const chunks: Buffer[] = [];
   for await (const chunk of req) chunks.push(Buffer.from(chunk));
