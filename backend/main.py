@@ -573,8 +573,6 @@ async def health_check_api():
 @app.post("/api/analyze-chart", response_model=ChartAnalysisResponse)
 async def analyze_chart(
     request: ChartAnalysisRequest = Body(...),
-    # Exigir assinatura ativa para usar a análise
-    subscription: Subscription = Depends(AuthMiddleware.require_active_subscription),
     current_user: Optional[User] = Depends(get_current_user_from_request)
 ):
     """
@@ -592,25 +590,27 @@ async def analyze_chart(
     if current_user and current_user.id != request.user_id:
         raise HTTPException(status_code=403, detail="Usuário não autorizado")
     
-    # Verificar limite de análises
-    if current_user:
-        # Verificar assinatura ativa
+    # Verificar limite de análises e política free/premium
+    subscription = None
+    plan_type = "free"
+    limit = 10
+    is_premium = False
+    current_usage = 0
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Usuário não autenticado")
+    try:
         subscription = await Database.get_active_subscription(current_user.id)
-        
-        # Determinar limite com base no tipo de plano
         plan_type = subscription.plan_type if subscription else "free"
+        is_premium = plan_type != "free"
         plan_limits = {"free": 10, "trader": 120, "alpha_pro": 350}
         limit = plan_limits.get(plan_type, 10)
-        
-        # Verificar uso atual
         current_usage = await Database.get_monthly_usage(current_user.id)
-        
-        # Verificar se excedeu o limite
         if current_usage >= limit:
-            raise HTTPException(
-                status_code=429,
-                detail=f"Limite mensal de análises atingido ({current_usage}/{limit}). Faça upgrade para continuar."
-            )
+            raise HTTPException(status_code=402, detail="Limite gratuito atingido. Faça upgrade para continuar.")
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"⚠️ Falha ao verificar assinatura/limite: {e}")
     
     print(f"📊 Recebida solicitação de análise do usuário: {request.user_id}")
     
@@ -620,20 +620,26 @@ async def analyze_chart(
         print(f"🖼️  Imagem salva temporariamente em: {image_path}")
         
         try:
-            # Tentar análise com IA se disponível
-            if OPENAI_AVAILABLE:
-                print("🤖 Usando serviço de IA para análise...")
+            # Política: free nunca usa OpenAI; premium usa IA se disponível
+            if is_premium and OPENAI_AVAILABLE:
+                print("🤖 (Premium) Usando serviço de IA para análise...")
                 result = analyze_chart_with_ai(image_path)
             else:
-                print("🎲 Usando análise simulada...")
+                print("🎲 (Free ou fallback) Usando análise simulada...")
                 result = simulate_chart_analysis(image_path)
             
             print(f"✅ Análise concluída: {result.acao} - {result.justificativa}")
             
-            # Incrementar contador de uso se usuário autenticado
+            # Incrementar contador e checar se é a 10ª para sinalizar upgrade
             if current_user:
-                await Database.increment_monthly_usage(current_user.id)
-                
+                new_count = await Database.increment_monthly_usage(current_user.id)
+                # Se atingiu a cota do plano free, ajustar mensagem
+                if not is_premium and new_count >= limit:
+                    # Sinalizar no texto da justificativa
+                    result.justificativa = (
+                        result.justificativa + " | Limite gratuito atingido. Faça upgrade para análises com IA."
+                    )
+
                 # Salvar análise no banco de dados
                 analysis_id = str(uuid.uuid4())
                 
