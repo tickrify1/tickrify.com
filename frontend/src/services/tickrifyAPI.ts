@@ -11,7 +11,12 @@ export interface BackendAnalysisResponse {
 }
 
 // URL base da API (configurável para desenvolvimento/produção)
-const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8001';
+// Em produção, se VITE_API_URL não estiver setada, tenta usar a mesma origem do site
+// assumindo que há um proxy/rewrite apontando para o backend.
+const API_BASE_URL = (
+  (import.meta as any).env?.VITE_API_URL ||
+  (typeof window !== 'undefined' ? `${window.location.origin.replace(/\/$/, '')}` : 'http://localhost:8001')
+);
 
 export class TickrifyBackendAPI {
   private static instance: TickrifyBackendAPI;
