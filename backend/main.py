@@ -10,21 +10,20 @@ from pydantic import BaseModel
 import json
 import re
 from dotenv import load_dotenv
-import stripe
 from .auth import AuthMiddleware, get_current_user_from_request
 from .database import Subscription
 from .database import Database, User, Subscription
 from .error_handler import register_exception_handlers, APIException
-from .stripe_service import StripeService
-from .stripe_endpoints import router as stripe_router
 from fastapi import Header
+import stripe
+from .stripe_endpoints import router as stripe_router
 from .stripe_webhook import stripe_webhook as stripe_webhook_handler
-from .stripe_service import StripeService
 
 # Carregar variáveis de ambiente
 load_dotenv()
 
 app = FastAPI(title="Tickrify API", version="1.0.0")
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development").lower()
 
 # Configurar CORS para permitir conexões do frontend
 cors_origins_env = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:5174,http://localhost:3000")
@@ -588,7 +587,8 @@ async def analyze_chart(
     
     # Verificar se o usuário tem permissão para analisar
     if current_user and current_user.id != request.user_id:
-        raise HTTPException(status_code=403, detail="Usuário não autorizado")
+        if ENVIRONMENT != "development":
+            raise HTTPException(status_code=403, detail="Usuário não autorizado")
     
     # Verificar limite de análises e política free/premium
     subscription = None
@@ -596,21 +596,28 @@ async def analyze_chart(
     limit = 10
     is_premium = False
     current_usage = 0
-    if not current_user:
-        raise HTTPException(status_code=401, detail="Usuário não autenticado")
-    try:
-        subscription = await Database.get_active_subscription(current_user.id)
-        plan_type = subscription.plan_type if subscription else "free"
-        is_premium = plan_type != "free"
-        plan_limits = {"free": 10, "trader": 120, "alpha_pro": 350}
-        limit = plan_limits.get(plan_type, 10)
-        current_usage = await Database.get_monthly_usage(current_user.id)
-        if current_usage >= limit:
-            raise HTTPException(status_code=402, detail="Limite gratuito atingido. Faça upgrade para continuar.")
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"⚠️ Falha ao verificar assinatura/limite: {e}")
+    if ENVIRONMENT == "development":
+        # Liberar autenticação e limites em desenvolvimento
+        if not current_user:
+            current_user = User(id=request.user_id or "dev-user", email="dev@example.com")
+        is_premium = True
+        limit = 10_000
+    else:
+        if not current_user:
+            raise HTTPException(status_code=401, detail="Usuário não autenticado")
+        try:
+            subscription = await Database.get_active_subscription(current_user.id)
+            plan_type = subscription.plan_type if subscription else plan_type
+            is_premium = plan_type != "free"
+            plan_limits = {"free": 10, "trader": 120, "alpha_pro": 350}
+            limit = plan_limits.get(plan_type, limit)
+            current_usage = await Database.get_monthly_usage(current_user.id)
+            if current_usage >= limit:
+                raise HTTPException(status_code=402, detail="Limite gratuito atingido. Faça upgrade para continuar.")
+        except HTTPException:
+            raise
+        except Exception as e:
+            print(f"⚠️ Falha ao verificar assinatura/limite: {e}")
     
     print(f"📊 Recebida solicitação de análise do usuário: {request.user_id}")
     
@@ -631,7 +638,7 @@ async def analyze_chart(
             print(f"✅ Análise concluída: {result.acao} - {result.justificativa}")
             
             # Incrementar contador e checar se é a 10ª para sinalizar upgrade
-            if current_user:
+            if current_user and ENVIRONMENT != "development":
                 new_count = await Database.increment_monthly_usage(current_user.id)
                 # Se atingiu a cota do plano free, ajustar mensagem
                 if not is_premium and new_count >= limit:
@@ -707,15 +714,31 @@ async def webhook_alias(request: Request, stripe_signature: str = Header(None)):
 @app.post("/api/checkout")
 async def checkout_alias(request: Request):
     body = await request.json()
-    price_id = body.get("price_id")
-    mode = body.get("mode")
-    success_url = body.get("success_url")
-    cancel_url = body.get("cancel_url")
+    # Log de debug para investigar payload recebido
+    try:
+        print(f"🧾 /api/checkout payload: {json.dumps(body)}")
+    except Exception:
+        print("🧾 /api/checkout payload recebido (não serializável)")
+    # Defaults tolerantes em desenvolvimento
+    origin = request.headers.get("origin") or "http://localhost:5173"
+    price_id = body.get("price_id") or os.getenv("STRIPE_PRICE_TRADER_MONTHLY") or os.getenv("VITE_STRIPE_PRICE_TRADER_MONTHLY")
+    mode = body.get("mode") or "subscription"
+    success_url = body.get("success_url") or f"{origin}/success?session_id={{CHECKOUT_SESSION_ID}}"
+    cancel_url = body.get("cancel_url") or f"{origin}/cancel"
     customer_email = body.get("customer_email")
     customer_name = body.get("customer_name")
     metadata = body.get("metadata")
-    if not price_id or not mode or not success_url or not cancel_url:
-        raise HTTPException(status_code=400, detail="Missing required fields")
+    missing = [
+        name for name, val in (
+            ("price_id", price_id),
+            ("mode", mode),
+            ("success_url", success_url),
+            ("cancel_url", cancel_url),
+        ) if not val
+    ]
+    if missing:
+        raise HTTPException(status_code=400, detail=f"Missing required fields: {', '.join(missing)}")
+    from .stripe_service import StripeService
     session = await StripeService.create_checkout_session(
         price_id=price_id,
         mode=mode,

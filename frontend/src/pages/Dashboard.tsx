@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useAnalysis } from '../hooks/useAnalysis';
 import { usePerformance } from '../hooks/usePerformance';
@@ -16,7 +16,7 @@ const Dashboard: React.FC = () => {
   const { currentAnalysis, analyses, monthlyUsage, planLimits } = useAnalysis();
   const { performance } = usePerformance();
   const { signals } = useSignals();
-  const { getPlanType, hasActiveSubscription } = useSubscription();
+  const { getPlanType } = useSubscription();
   
   const planType = getPlanType();
   const currentLimit = planLimits[planType];
@@ -33,8 +33,16 @@ const Dashboard: React.FC = () => {
 
   const planBadge = getPlanBadge();
 
-  // Bloqueio de recursos para quem não tem plano real trader
-  const isTrader = hasActiveSubscription() && planType === 'trader';
+  // Liberar painel assim que o plano local estiver como trader
+  const isTrader = planType === 'trader';
+
+  // Re-render ao mudar assinatura
+  const [subVersion, setSubVersion] = useState(0);
+  useEffect(() => {
+    const onSubUpdated = () => setSubVersion(v => v + 1);
+    window.addEventListener('subscriptionUpdated', onSubUpdated as any);
+    return () => window.removeEventListener('subscriptionUpdated', onSubUpdated as any);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50">
@@ -67,7 +75,7 @@ const Dashboard: React.FC = () => {
               <div className="px-6 py-3 rounded-lg bg-blue-50 text-blue-700 font-medium flex items-center space-x-2">
                 <span className="text-lg">{planBadge.icon}</span>
                 <span>Plano {planBadge.label}</span>
-                {hasActiveSubscription() && <Crown className="w-5 h-5" />}
+                {isTrader && <Crown className="w-5 h-5" />}
               </div>
             </div>
           </div>

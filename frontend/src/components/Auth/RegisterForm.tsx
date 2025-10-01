@@ -68,9 +68,7 @@ export function RegisterForm({ onSwitchToLogin, onClose }: RegisterFormProps) {
   return (
     <div className="w-full max-w-md mx-auto">
       <div className="text-center mb-8">
-        <div className="w-16 h-16 bg-gradient-to-r from-emerald-500 to-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <UserPlus className="w-8 h-8 text-white" />
-        </div>
+        <img src="/tickrify-logo-icon.png" alt="Tickrify" className="h-12 w-auto mx-auto mb-4" />
         <h2 className="text-2xl font-bold text-gray-900">Criar Conta</h2>
         <p className="text-gray-600 mt-2">Junte-se ao Tickrify gratuitamente</p>
       </div>

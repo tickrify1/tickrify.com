@@ -3,7 +3,8 @@ import { useState } from 'react';
 import { StripeCheckoutParams } from '../services/stripe';
 import supabase from '../services/supabase';
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY!);
+const publishableKey = (import.meta as any).env?.VITE_STRIPE_PUBLISHABLE_KEY as string | undefined;
+const stripePromise = publishableKey ? loadStripe(publishableKey) : Promise.resolve(null as any);
 
 export function useStripe() {
   const [isLoading, setIsLoading] = useState(false);
@@ -13,11 +14,10 @@ export function useStripe() {
     setIsLoading(true);
     setError(null);
     try {
-      // Chama o backend para criar a sessão real do Stripe
       const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || '';
       const { data: sessionData } = await supabase.auth.getSession();
       const accessToken = sessionData?.session?.access_token;
-      const response = await fetch(`${API_BASE_URL}/api/stripe/create-checkout-session`, {
+      const response = await fetch(`${API_BASE_URL}/api/checkout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}) },
         body: JSON.stringify(params),
@@ -25,8 +25,7 @@ export function useStripe() {
       if (!response.ok) throw new Error('Erro ao criar sessão Stripe');
       const data = await response.json();
       const stripe = await stripePromise;
-      if (!stripe) throw new Error('Stripe.js não carregado');
-      // Redireciona para o checkout real
+      if (!stripe) throw new Error('Stripe.js não carregado (defina VITE_STRIPE_PUBLISHABLE_KEY)');
       await stripe.redirectToCheckout({ sessionId: data.session_id });
       return data;
     } catch (err: any) {
@@ -39,3 +38,5 @@ export function useStripe() {
 
   return { createCheckoutSession, isLoading, error };
 }
+
+

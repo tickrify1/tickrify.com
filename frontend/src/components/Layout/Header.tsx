@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Menu, User, LogOut, ChevronDown, Settings } from 'lucide-react';
+import { Menu, User, LogOut, ChevronDown } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useSubscription } from '../../hooks/useSubscription';
 import { useNavigation } from '../../hooks/useNavigation';
-import { stripeProducts } from '../../stripe-config';
+import { products } from '../../pricing';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -67,17 +67,17 @@ export function Header({ onMenuClick, isMobile, onPlanSwitch, currentPlanType }:
         {/* Logo for mobile */}
         {isMobile && (
           <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <Settings className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-lg font-semibold text-gray-900">Tickrify</span>
+            <img src="/tickrify-logo-icon.png" alt="Tickrify" className="h-8 w-auto" />
           </div>
         )}
       </div>
 
       {/* Center - Spacer (desktop) */}
       {!isMobile && (
-        <div className="flex-1" />
+        <div className="flex items-center justify-between w-full">
+          <img src="/tickrify-logo-icon.png" alt="Tickrify" className="h-8 w-auto" />
+          <div className="flex-1" />
+        </div>
       )}
 
       {/* Right side - User controls */}
@@ -117,8 +117,8 @@ export function Header({ onMenuClick, isMobile, onPlanSwitch, currentPlanType }:
                 <p className="text-xs text-gray-500 mt-1">10 análises/mês</p>
               </button>
 
-              {/* Paid Plans */}
-              {stripeProducts.map((product) => {
+              {/* Paid Plans (mostrar apenas Trader Mensal por enquanto) */}
+              {products.filter(p => p.interval !== 'year').map((product) => {
                 const isActive = currentPlan?.priceId === product.priceId;
                 
                 return (
@@ -184,16 +184,7 @@ export function Header({ onMenuClick, isMobile, onPlanSwitch, currentPlanType }:
                 <p className="text-xs text-gray-500">{user?.email}</p>
               </div>
               
-              <button
-                onClick={() => {
-                  navigateTo('settings');
-                  setShowUserMenu(false);
-                }}
-                className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors flex items-center space-x-2"
-              >
-                <Settings className="w-4 h-4 text-gray-500" />
-                <span className="text-sm text-gray-700">Configurações</span>
-              </button>
+              {/* Removido item Configurações */}
               
               <button
                 onClick={() => {

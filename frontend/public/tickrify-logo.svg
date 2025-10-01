@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="240" height="56" viewBox="0 0 240 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="240" height="56" rx="12" fill="#0B5FFF"/>
+  <g transform="translate(12,10)">
+    <rect x="0" y="0" width="36" height="36" rx="8" fill="white"/>
+    <path d="M8 20c6-6 14-6 20 0" stroke="#0B5FFF" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="12" cy="14" r="2.5" fill="#0B5FFF"/>
+    <circle cx="24" cy="26" r="2.5" fill="#0B5FFF"/>
+  </g>
+  <text x="62" y="34" font-family="Inter, Arial, sans-serif" font-weight="700" font-size="24" fill="white">Tickrify</text>
+</svg>
+

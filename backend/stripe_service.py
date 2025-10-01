@@ -9,10 +9,10 @@ from .database import Database
 # Carregar variáveis de ambiente
 load_dotenv()
 
-# Configurar Stripe
+# Configurar Stripe (modo tolerante em desenvolvimento)
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 if not stripe.api_key:
-    raise ValueError("STRIPE_SECRET_KEY deve ser definida no arquivo .env")
+    print("\033[93mAVISO: STRIPE_SECRET_KEY não configurada - Stripe desativado em desenvolvimento\033[0m")
 
 class StripeService:
     """Serviço para interação com a API do Stripe"""
@@ -29,6 +29,8 @@ class StripeService:
     ) -> Dict[str, Any]:
         """Cria uma sessão de checkout do Stripe"""
         try:
+            if not stripe.api_key:
+                raise HTTPException(status_code=400, detail="Stripe não configurado. Defina STRIPE_SECRET_KEY no .env")
             # Configurar parâmetros da sessão
             session_params = {
                 "payment_method_types": ["card"],
@@ -89,6 +91,8 @@ class StripeService:
     async def get_subscription_status(subscription_id: str) -> Dict[str, Any]:
         """Obtém o status de uma assinatura"""
         try:
+            if not stripe.api_key:
+                raise HTTPException(status_code=400, detail="Stripe não configurado. Defina STRIPE_SECRET_KEY no .env")
             # Buscar assinatura no Stripe
             subscription = stripe.Subscription.retrieve(subscription_id)
             
@@ -115,6 +119,8 @@ class StripeService:
     async def cancel_subscription(subscription_id: str) -> Dict[str, Any]:
         """Cancela uma assinatura"""
         try:
+            if not stripe.api_key:
+                raise HTTPException(status_code=400, detail="Stripe não configurado. Defina STRIPE_SECRET_KEY no .env")
             # Cancelar assinatura no Stripe
             canceled_subscription = stripe.Subscription.delete(subscription_id)
             
@@ -136,6 +142,8 @@ class StripeService:
     async def update_subscription(subscription_id: str, new_price_id: str) -> Dict[str, Any]:
         """Atualiza o plano de uma assinatura"""
         try:
+            if not stripe.api_key:
+                raise HTTPException(status_code=400, detail="Stripe não configurado. Defina STRIPE_SECRET_KEY no .env")
             # Buscar assinatura atual
             subscription = stripe.Subscription.retrieve(subscription_id)
             
@@ -177,6 +185,8 @@ class StripeService:
     async def create_customer_portal_session(customer_id: str, return_url: str) -> Dict[str, Any]:
         """Cria uma sessão do portal do cliente"""
         try:
+            if not stripe.api_key:
+                raise HTTPException(status_code=400, detail="Stripe não configurado. Defina STRIPE_SECRET_KEY no .env")
             # Criar sessão do portal
             session = stripe.billing_portal.Session.create(
                 customer=customer_id,

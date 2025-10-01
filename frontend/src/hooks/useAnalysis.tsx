@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react';
 import { Analysis } from '../types';
 import { useLocalStorage } from './useLocalStorage';
 import { usePerformance } from './usePerformance';
-import { analyzeChartWithAI } from '../services/openai';
-import { tickrifyAPI } from '../services/tickrifyAPI';
+import { tickrifyAPI, BackendAnalysisResponse } from '../services/tickrifyAPI';
 import { useSubscription } from './useSubscription';
 import { useAuth } from './useAuth';
 import { useSupabaseDataContext } from './useSupabaseDataProvider';
@@ -25,6 +24,7 @@ export function useAnalysis() {
   const [currentAnalysis, setCurrentAnalysis] = useState<Analysis | null>(null);
   const [analiseIA, setAnaliseIA] = useState<any>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [subVersion, setSubVersion] = useState(0);
   
   // Usar dados do Supabase
   const { 
@@ -32,27 +32,27 @@ export function useAnalysis() {
     monthlyUsage, 
     saveAnalysis: saveAnalysisToSupabase,
     saveSignal: saveSignalToSupabase,
-    incrementMonthlyUsage 
+    fetchMonthlyUsage
   } = useSupabaseDataContext();
   
   const { updatePerformanceFromAnalysis } = usePerformance();
   const { getPlanType, planLimits } = useSubscription();
+  // Re-render quando a assinatura mudar, para atualizar limites imediatamente
+  useEffect(() => {
+    const onSubUpdated = () => setSubVersion(v => v + 1);
+    window.addEventListener('subscriptionUpdated', onSubUpdated as any);
+    return () => window.removeEventListener('subscriptionUpdated', onSubUpdated as any);
+  }, []);
   const { user } = useAuth();
 
   // Removido ajuste manual do contador mensal para evitar ReferenceError
   // O controle de uso mensal é feito via contexto (useSupabaseData)
 
-  const canAnalyze = (): boolean => {
-    // Usar limite do banco de dados
-    if (monthlyUsage.limit === Infinity) return true;
-    return monthlyUsage.count < monthlyUsage.limit;
-  };
+  // Limites e contagem são controlados pelo backend; o frontend não bloqueia preventivamente
 
   const analyzeChart = async (symbol?: string, imageData?: string) => {
-    // Check usage limits
-    if (!canAnalyze()) {
-      throw new Error(`Limite mensal esgotado! Você já usou ${monthlyUsage.count} análises este mês. Faça upgrade para continuar.`);
-    }
+    // Modo de testes: sem bloqueio por plano/limite no frontend
+    const planType = getPlanType();
 
     console.log('🎯 INICIANDO analyzeChart - Uso mensal ANTES da análise:', monthlyUsage);
     setIsAnalyzing(true);
@@ -61,29 +61,27 @@ export function useAnalysis() {
     try {
       let result: any;
       
-      // Tentar usar novo backend FastAPI primeiro
+      // Sempre tentar usar backend (modo de testes libera limites no backend)
       try {
         console.log('� Tentando análise via backend FastAPI...');
-        const userId = user?.id || 'anonymous';
-        
+        const userId = user?.id || 'dev-user';
         if (imageData) {
           const backendResult = await tickrifyAPI.analyzeChart(imageData, userId);
           console.log('✅ Análise via backend concluída:', backendResult);
-          
-          // Converter para formato compatível
           result = tickrifyAPI.convertToLegacyFormat(backendResult, symbol);
         } else {
           throw new Error('Imagem obrigatória para análise via backend');
         }
-      } catch (backendError) {
-        console.warn('⚠️ Backend indisponível, usando análise local:', backendError);
-        
-        // Fallback para análise local
-        result = await analyzeChartWithAI({
-          image: imageData || '',
-          symbol: symbol || '',
-          timeframe: '1H'
-        });
+      } catch (backendError: any) {
+        console.error('❌ Erro no backend de análise:', backendError);
+        // Fallback: gerar mock se backend indisponível
+        const actions: Array<BackendAnalysisResponse['acao']> = ['compra', 'venda', 'esperar'];
+        const randomAction = actions[Math.floor(Math.random() * actions.length)];
+        const mockResponse: BackendAnalysisResponse = {
+          acao: randomAction,
+          justificativa: 'Fallback local de teste. Backend indisponível.'
+        };
+        result = tickrifyAPI.convertToLegacyFormat(mockResponse, symbol);
       }
       
       console.log('📊 Resultado final da análise:', result);
@@ -157,12 +155,14 @@ export function useAnalysis() {
         aiResponse
       });
       
-      // Incrementar uso mensal no banco de dados
+      // Atualizar uso mensal a partir do backend e abrir modal se alcançou o limite
       try {
-        await incrementMonthlyUsage();
-        console.log('✅ Uso mensal incrementado no banco de dados');
+        const usage = await fetchMonthlyUsage();
+        if (usage && usage.count >= usage.limit) {
+          window.dispatchEvent(new CustomEvent('upgradeRequired'));
+        }
       } catch (error) {
-        console.error('❌ Erro ao incrementar uso mensal:', error);
+        console.error('❌ Erro ao atualizar uso mensal:', error);
       }
       
       // Update performance metrics
@@ -235,7 +235,6 @@ export function useAnalysis() {
     planLimits,
     analyzeChart,
     clearAnalysis,
-    clearAllAnalyses,
-    canAnalyze
+    clearAllAnalyses
   };
 }

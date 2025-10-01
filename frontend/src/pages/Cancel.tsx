@@ -17,6 +17,7 @@ export function Cancel() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl p-8 text-center">
+        <img src="/tickrify-logo-full.png" alt="Tickrify" className="h-10 w-auto mx-auto mb-4" />
         <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
           <XCircle className="w-12 h-12 text-red-600" />
         </div>

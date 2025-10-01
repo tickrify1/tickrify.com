@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BarChart3, Zap, Settings, LogOut, User, Crown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { BarChart3, Zap, Settings, LogOut, User } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useSubscription } from '../../hooks/useSubscription';
 import { PageType } from '../../hooks/useNavigation';
@@ -8,9 +8,10 @@ interface SidebarProps {
   currentPage: PageType;
   onNavigate: (page: PageType) => void;
   isMobile: boolean;
+  onCollapsedChange?: (collapsed: boolean) => void;
 }
 
-export function Sidebar({ currentPage, onNavigate, isMobile }: SidebarProps) {
+export function Sidebar({ currentPage, onNavigate, isMobile, onCollapsedChange }: SidebarProps) {
   const { user, logout } = useAuth();
   const { getPlanType, getCurrentPlan } = useSubscription();
   // Inicializar sempre expandida (false = expandida, true = colapsada)
@@ -24,6 +25,7 @@ export function Sidebar({ currentPage, onNavigate, isMobile }: SidebarProps) {
   useEffect(() => {
     if (isMobile) {
       setIsCollapsed(false);
+      if (onCollapsedChange) onCollapsedChange(false);
     }
   }, [isMobile]);
 
@@ -45,6 +47,7 @@ export function Sidebar({ currentPage, onNavigate, isMobile }: SidebarProps) {
   const expandSidebar = () => {
     setIsCollapsed(false);
     console.log('🔧 Sidebar expandida manualmente');
+    if (onCollapsedChange) onCollapsedChange(false);
   };
 
   // Tecla de atalho para expandir sidebar (Ctrl + B)
@@ -60,47 +63,25 @@ export function Sidebar({ currentPage, onNavigate, isMobile }: SidebarProps) {
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, []);
 
-  const getPlanBadge = () => {
-    const badges = {
-      free: { label: 'Free', icon: '🆓' },
-      trader: { label: 'Trader', icon: '🚀' },
-    };
-    return badges[planType as keyof typeof badges] || badges.free;
-  };
-
-  const planBadge = getPlanBadge();
+  // Removido badge de plano para um visual mais limpo na barra colapsada
 
   const menuItems: { id: PageType; label: string; icon: any }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-    { id: 'signals', label: 'Sinais IA', icon: Zap },
-    { id: 'settings', label: 'Configurações', icon: Settings }
+    { id: 'signals', label: 'Sinais IA', icon: Zap }
   ];
 
   return (
     <div className={`bg-white border-r border-gray-200 flex flex-col h-full transition-all duration-300 overflow-hidden ${
       isCollapsed ? 'w-16' : (isMobile ? 'w-64' : 'w-64')
     }`}>
-      {/* Botão de emergência para expandir sempre visível */}
-      {isCollapsed && (
-        <div className="p-2 border-b border-gray-200 bg-blue-50">
-          <button
-            onClick={expandSidebar}
-            className="w-full p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-            title="Expandir Tickrify (Ctrl+B)"
-          >
-            ↔️
-          </button>
-        </div>
-      )}
+      {/* Removido botão de emergência/atalhos para um visual minimalista */}
       
       {/* Header */}
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
           {!isCollapsed && (
             <div className="flex items-center space-x-3 min-w-0 flex-1">
-              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                <BarChart3 className="w-6 h-6 text-white" />
-              </div>
+              <img src="/tickrify-logo-icon.png" alt="Tickrify" className="h-8 w-auto" />
               <div className="min-w-0 flex-1">
                 <h1 className="text-xl font-semibold text-gray-900 truncate">Tickrify</h1>
                 <p className="text-sm text-gray-500 truncate">Trading com IA</p>
@@ -109,22 +90,12 @@ export function Sidebar({ currentPage, onNavigate, isMobile }: SidebarProps) {
           )}
           
           {isCollapsed && (
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center mx-auto cursor-pointer"
-                 onClick={expandSidebar}
-                 title="Clique para expandir Tickrify (Ctrl+B)">
-              <BarChart3 className="w-6 h-6 text-white" />
+            <div className="mx-auto">
+              <img src="/tickrify-logo-icon.png" alt="Tickrify" className="h-10 w-auto" />
             </div>
           )}
           
-          {!isMobile && (
-            <button
-              onClick={() => setIsCollapsed(!isCollapsed)}
-              className="p-1 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors"
-              title={isCollapsed ? 'Expandir sidebar' : 'Colapsar sidebar'}
-            >
-              {isCollapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
-            </button>
-          )}
+          {/* Removido botão de colapsar/expandir com setas para simplificar o layout */}
           
           {/* Botão de reset para sempre expandir */}
           {isCollapsed && (
@@ -139,33 +110,13 @@ export function Sidebar({ currentPage, onNavigate, isMobile }: SidebarProps) {
         </div>
       </div>
 
-      {/* Plan Badge */}
-      {!isCollapsed && (
-        <div className="p-4 border-b border-gray-200">
-          <div className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-blue-50 text-blue-700 font-medium text-sm min-w-0">
-            <span>{planBadge.icon}</span>
-            <span className="truncate">Plano {planBadge.label}</span>
-            {currentPlan && <Crown className="w-4 h-4" />}
-          </div>
-        </div>
-      )}
+      {/* Removido plan badge */}
 
       {isCollapsed && (
-        <div className="p-4 border-b border-gray-200 flex justify-center">
-          <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center cursor-pointer"
-               onClick={expandSidebar}
-               title="Clique para expandir (Ctrl+B)">
-            <span className="text-lg">{planBadge.icon}</span>
-          </div>
-        </div>
+        <div className="p-2" />
       )}
 
-      {/* Instrução para expandir - visível quando colapsada */}
-      {isCollapsed && (
-        <div className="p-2 text-center">
-          <p className="text-xs text-gray-500 transform rotate-90 whitespace-nowrap">Ctrl+B</p>
-        </div>
-      )}
+      {/* Removido texto de instrução */}
 
       {/* Navigation */}
       <nav className="flex-1 p-4 overflow-y-auto">

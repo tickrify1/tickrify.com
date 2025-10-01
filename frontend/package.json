@@ -12,8 +12,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@clerk/clerk-react": "^5.49.0",
     "@stripe/stripe-js": "^7.9.0",
-    "@supabase/supabase-js": "^2.57.4",
     "browserify-zlib": "^0.2.0",
     "framer-motion": "^10.16.4",
     "gitup": "0.0.0",
@@ -25,7 +25,6 @@
     "react-router-dom": "^7.9.1",
     "recharts": "^2.8.0",
     "stream-browserify": "^3.0.0",
-    "stripe": "^18.5.0",
     "util": "^0.12.5"
   },
   "devDependencies": {

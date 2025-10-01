@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { User, Bell, Save, Check, Shield, Lock } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { User, Bell, Save, Check } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useSettings } from '../hooks/useSettings';
 
@@ -10,13 +10,17 @@ export default function Settings() {
   const [formData, setFormData] = useState({
     displayName: settings.displayName || user?.name || '',
     notifications: settings.notifications || true,
-    twoFactorAuth: false,
-    dataSharing: false,
-    marketingEmails: true,
-    loginAlerts: true,
   });
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Keep display name in sync when auth user or persisted settings load/change
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      displayName: settings.displayName || user?.name || ''
+    }));
+  }, [user?.name, settings.displayName]);
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({
@@ -51,7 +55,6 @@ export default function Settings() {
   const tabs = [
     { id: 'profile', label: 'Perfil', icon: User },
     { id: 'notifications', label: 'Notificações', icon: Bell },
-    { id: 'privacy', label: 'Privacidade e Segurança', icon: Shield },
   ];
 
   return (
@@ -167,130 +170,7 @@ export default function Settings() {
                 </div>
               )}
 
-              {activeTab === 'privacy' && (
-                <div className="space-y-6">
-                  <div>
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                      Privacidade e Segurança
-                    </h2>
-                    
-                    <div className="space-y-6">
-                      {/* Autenticação de Dois Fatores */}
-                      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center space-x-3">
-                            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                              <Lock className="w-5 h-5 text-white" />
-                            </div>
-                            <div>
-                              <h3 className="font-medium text-gray-900 dark:text-white">
-                                Autenticação de Dois Fatores (2FA)
-                              </h3>
-                              <p className="text-sm text-gray-500 dark:text-slate-400">
-                                Adicione uma camada extra de segurança à sua conta
-                              </p>
-                            </div>
-                          </div>
-                          <label className="relative inline-flex items-center cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={formData.twoFactorAuth}
-                              onChange={(e) => handleInputChange('twoFactorAuth', e.target.checked)}
-                              className="sr-only peer"
-                            />
-                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                          </label>
-                        </div>
-                        {formData.twoFactorAuth && (
-                          <div className="mt-3 p-3 bg-white dark:bg-slate-800 rounded-lg border border-blue-200 dark:border-blue-700">
-                            <p className="text-sm text-blue-700 dark:text-blue-300">
-                              🔐 2FA ativado! Use seu aplicativo autenticador para fazer login.
-                            </p>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Alertas de Login */}
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="font-medium text-gray-900 dark:text-white">
-                            Alertas de Login
-                          </h3>
-                          <p className="text-sm text-gray-500 dark:text-slate-400">
-                            Receba notificações quando alguém acessar sua conta
-                          </p>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={formData.loginAlerts}
-                            onChange={(e) => handleInputChange('loginAlerts', e.target.checked)}
-                            className="sr-only peer"
-                          />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                        </label>
-                      </div>
-
-                      {/* Compartilhamento de Dados */}
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="font-medium text-gray-900 dark:text-white">
-                            Compartilhamento de Dados
-                          </h3>
-                          <p className="text-sm text-gray-500 dark:text-slate-400">
-                            Permitir compartilhamento de dados para melhorar o serviço
-                          </p>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={formData.dataSharing}
-                            onChange={(e) => handleInputChange('dataSharing', e.target.checked)}
-                            className="sr-only peer"
-                          />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                        </label>
-                      </div>
-
-                      {/* Emails de Marketing */}
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="font-medium text-gray-900 dark:text-white">
-                            Emails de Marketing
-                          </h3>
-                          <p className="text-sm text-gray-500 dark:text-slate-400">
-                            Receber ofertas especiais e novidades por email
-                          </p>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={formData.marketingEmails}
-                            onChange={(e) => handleInputChange('marketingEmails', e.target.checked)}
-                            className="sr-only peer"
-                          />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                        </label>
-                      </div>
-
-                      {/* Zona de Perigo */}
-                      <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-4 border border-red-200 dark:border-red-800">
-                        <h3 className="font-medium text-red-900 dark:text-red-300 mb-3">
-                          🚨 Zona de Perigo
-                        </h3>
-                        <div className="space-y-3">
-                          <button className="w-full bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors text-sm font-medium">
-                            Excluir Conta Permanentemente
-                          </button>
-                          <p className="text-xs text-red-600 dark:text-red-400">
-                            ⚠️ Esta ação não pode ser desfeita. Todos os seus dados serão perdidos.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+              
 
               {/* Save Button */}
               <div className="mt-8 pt-6 border-t border-gray-200 dark:border-slate-700">

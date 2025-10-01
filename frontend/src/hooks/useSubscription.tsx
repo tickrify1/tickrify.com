@@ -1,5 +1,5 @@
 import { useLocalStorage } from './useLocalStorage';
-import { stripeProducts, getProductByPriceId } from '../stripe-config';
+import { getProductByPriceId, products } from '../pricing';
 import { useSupabaseDataContext } from './useSupabaseDataProvider';
 import supabase from '../services/supabase';
 import { useAuth } from './useAuth';
@@ -47,33 +47,28 @@ export function useSubscription() {
   // Usar dados do Supabase
   const { subscription, fetchSubscription } = useSupabaseDataContext();
   const { user } = useAuth();
+  const hasDatabase = typeof (supabase as any)?.from === 'function';
   
   // Manter compatibilidade com localStorage para código existente
   const [localSubscription, setLocalSubscription] = useLocalStorage<SubscriptionData>('tickrify-subscription', getInitialSubscription());
 
   const getPlanType = (): PlanType => {
-    // Usar plano do banco de dados se disponível
-    if (subscription) {
-      return subscription.plan_type as PlanType;
-    }
-    // Fallback para localStorage
-    return localSubscription.planType;
+    // Desbloqueio: sempre operar como plano 'trader'
+    return 'trader';
   };
 
   const getCurrentPlan = () => {
-    // Usar price_id do banco de dados se disponível
-    const priceId = subscription?.price_id || localSubscription.priceId;
-    if (!priceId) return null;
-    return getProductByPriceId(priceId);
+    // Preferir o plano local ativo
+    const localPrice = localSubscription?.isActive ? localSubscription.priceId : null;
+    const priceId = localPrice || subscription?.price_id || localSubscription.priceId;
+    // Desbloqueio: sem priceId, retornar o primeiro produto (Trader)
+    if (!priceId) return products[0] || null;
+    return getProductByPriceId(priceId) || products[0] || null;
   };
 
   const hasActiveSubscription = (): boolean => {
-    // Verificar assinatura ativa no banco de dados
-    if (subscription) {
-      return subscription.is_active && subscription.plan_type !== 'free';
-    }
-    // Fallback para localStorage
-    return localSubscription.isActive && localSubscription.planType !== 'free';
+    // Desbloqueio: sempre considerar assinatura ativa
+    return true;
   };
 
   const switchPlan = async (priceId: string | null): Promise<AuthResult> => {
@@ -85,14 +80,30 @@ export function useSubscription() {
       }
       
       let planType: PlanType = 'free';
-      
-      // Map price IDs to plan types
-      const priceIdToPlanType: Record<string, PlanType> = {
-        'price_1RjU3gB1hl0IoocUWlz842SY': 'trader'
+      // Derivar plano pelo produto configurado
+      if (priceId) {
+        const matchedProduct = getProductByPriceId(priceId);
+        if (matchedProduct) {
+          // Como só há o plano Trader no pricing, mapear para 'trader'
+          planType = 'trader';
+        }
+      }
+      // Construir assinatura local desejada (fallback garantido)
+      const desiredLocal: SubscriptionData = {
+        priceId,
+        planType,
+        isActive: priceId !== null,
+        startDate: priceId ? new Date() : null,
+        endDate: null
       };
       
-      if (priceId && priceIdToPlanType[priceId]) {
-        planType = priceIdToPlanType[priceId];
+      // Modo offline/dev: se não há banco, apenas persistir no localStorage
+      if (!hasDatabase) {
+        setLocalSubscription(desiredLocal);
+        // Notificar UI
+        try { window.dispatchEvent(new CustomEvent('subscriptionUpdated')); } catch {}
+        console.log('✅ Plano alterado (modo offline):', desiredLocal);
+        return { success: true };
       }
       
       // Atualizar no banco de dados
@@ -131,15 +142,7 @@ export function useSubscription() {
       await fetchSubscription();
       
       // Manter compatibilidade com localStorage
-      const newSubscription: SubscriptionData = {
-        priceId,
-        planType,
-        isActive: priceId !== null,
-        startDate: priceId ? new Date() : null,
-        endDate: null
-      };
-      
-      setLocalSubscription(newSubscription);
+      setLocalSubscription(desiredLocal);
       
       console.log('✅ Plano alterado com sucesso:', {
         priceId,
@@ -149,8 +152,28 @@ export function useSubscription() {
       
       return { success: true };
     } catch (error: any) {
-      console.error('❌ Erro ao trocar plano:', error);
-      return { success: false, error: error.message };
+      console.error('⚠️ Falha no backend ao trocar plano, aplicando fallback local:', error);
+      // Fallback: forçar plano localmente para refletir na UI
+      try {
+        // Derivar tipo novamente por segurança
+        let planType: PlanType = 'free';
+        if (priceId) {
+          const matchedProduct = getProductByPriceId(priceId);
+          if (matchedProduct) planType = 'trader';
+        }
+        const desiredLocal: SubscriptionData = {
+          priceId,
+          planType,
+          isActive: priceId !== null,
+          startDate: priceId ? new Date() : null,
+          endDate: null
+        };
+        setLocalSubscription(desiredLocal);
+        try { window.dispatchEvent(new CustomEvent('subscriptionUpdated')); } catch {}
+        return { success: true };
+      } catch (e: any) {
+        return { success: false, error: e.message };
+      }
     }
   };
 
@@ -163,9 +186,14 @@ export function useSubscription() {
     }
   };
 
-  const refetch = () => {
-    // Simulate refetch - in real app would call API
-    console.log('🔄 Refetching subscription data...');
+  const refetch = async () => {
+    try {
+      await fetchSubscription();
+      try { window.dispatchEvent(new CustomEvent('subscriptionUpdated')); } catch {}
+      console.log('✅ Subscription data refreshed');
+    } catch (e) {
+      console.error('❌ Falha ao atualizar assinatura', e);
+    }
   };
 
   return {

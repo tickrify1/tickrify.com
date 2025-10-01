@@ -86,8 +86,10 @@ const ChartUpload: React.FC = () => {
       return;
     }
 
-    // Se for usuário FREE, mostrar modal de upgrade
-    if (getPlanType() === 'free') {
+    // Usuário Free: permitir até o limite gratuito; acima disso, abrir modal de upgrade
+    const planTypeNow = getPlanType();
+    const currentLimitNow = planLimits[planTypeNow];
+    if (planTypeNow === 'free' && monthlyUsage.count >= currentLimitNow) {
       setShowUpgradeModal(true);
       return;
     }
@@ -323,13 +325,19 @@ const ChartUpload: React.FC = () => {
             className="px-8 py-4 rounded-xl font-bold text-lg transition-all transform hover:scale-105 shadow-lg flex items-center space-x-3 mx-auto bg-blue-600 text-white hover:bg-blue-700"
           >
             <Brain className="w-6 h-6" />
-            <span>{getPlanType() === 'free' ? 'Fazer Upgrade para Analisar' : 'Analisar com IA'}</span>
+            <span>{
+              getPlanType() === 'free'
+                ? (monthlyUsage.count < currentLimit ? 'Analisar com IA (Teste)' : 'Fazer Upgrade para Analisar')
+                : 'Analisar com IA'
+            }</span>
             <Zap className="w-6 h-6" />
           </button>
 
           {getPlanType() === 'free' && (
             <p className="text-blue-600 text-sm mt-2 font-medium">
-              🚀 Faça upgrade para desbloquear análise IA avançada
+              {monthlyUsage.count < currentLimit
+                ? 'Você está usando a análise de teste gratuita (sem API real)'
+                : '🚀 Faça upgrade para desbloquear análise IA avançada'}
             </p>
           )}
         </div>

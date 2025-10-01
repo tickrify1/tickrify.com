@@ -1,11 +1,18 @@
 import os
 import time
+import json
 import jwt
+import requests
 from typing import Optional, Dict, Any
 from fastapi import Request, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from .database import Database, User, Subscription
+# Importar algoritmos JWT de forma resiliente (evitar erro em ambientes sem extras RSA)
+try:
+    from jwt import algorithms as jwt_algorithms  # type: ignore
+except Exception:
+    jwt_algorithms = None  # type: ignore
 
 # Carregar variáveis de ambiente
 load_dotenv()
@@ -16,6 +23,41 @@ if not SUPABASE_JWT_SECRET:
     # Modo desenvolvimento: permitir requests sem autenticação
     print("⚠️ SUPABASE_JWT_SECRET ausente - autenticação relaxada em desenvolvimento")
     SUPABASE_JWT_SECRET = "dev-secret"
+
+# Configurações do Clerk (JWT RS256 via JWKS)
+CLERK_JWKS_URL = os.getenv("CLERK_JWKS_URL")
+CLERK_ISSUER = os.getenv("CLERK_ISSUER")
+CLERK_PEM_PUBLIC_KEY = os.getenv("CLERK_PEM_PUBLIC_KEY")
+
+# Cache simples de JWKS por kid
+_JWKS_CACHE: Dict[str, Any] = {}
+
+def _get_clerk_public_key(token: str):
+    if not CLERK_JWKS_URL:
+        return None
+    try:
+        header = jwt.get_unverified_header(token)
+        kid = header.get("kid")
+        if not kid:
+            return None
+        if kid in _JWKS_CACHE:
+            return _JWKS_CACHE[kid]
+        resp = requests.get(CLERK_JWKS_URL, timeout=5)
+        resp.raise_for_status()
+        jwks = resp.json()
+        for jwk in jwks.get("keys", []):
+            if jwk.get("kid") == kid:
+                if jwt_algorithms and hasattr(jwt_algorithms, 'RSAAlgorithm'):
+                    public_key = jwt_algorithms.RSAAlgorithm.from_jwk(json.dumps(jwk))  # type: ignore[attr-defined]
+                else:
+                    # Sem suporte RSA disponível neste ambiente
+                    return None
+                _JWKS_CACHE[kid] = public_key
+                return public_key
+    except Exception as e:
+        # Falha ao obter chave pública; retornar None para tentar fallback
+        return None
+    return None
 
 # Emails liberados (sem necessidade de pagamento)
 WHITELISTED_EMAILS = [e.strip().lower() for e in (os.getenv("WHITELISTED_EMAILS", "").split(",")) if e.strip()]
@@ -35,7 +77,39 @@ class AuthMiddleware:
         token = credentials.credentials
         
         try:
-            # Verificar token JWT do Supabase
+            # 1) Tentar verificar token do Clerk (RS256 via JWKS)
+            if CLERK_JWKS_URL:
+                public_key = _get_clerk_public_key(token)
+                if public_key is not None:
+                    payload = jwt.decode(
+                        token,
+                        public_key,
+                        algorithms=["RS256"],
+                        issuer=CLERK_ISSUER,
+                        options={"verify_aud": False}
+                    )
+                    # Clerk usa 'sub' como ID do usuário
+                    if not payload.get("sub"):
+                        raise HTTPException(status_code=401, detail="Token Clerk inválido (sub ausente)")
+                    return payload
+
+            # 1b) Fallback: verificar com chave pública PEM (se fornecida)
+            if CLERK_PEM_PUBLIC_KEY:
+                try:
+                    payload = jwt.decode(
+                        token,
+                        CLERK_PEM_PUBLIC_KEY,
+                        algorithms=["RS256"],
+                        issuer=CLERK_ISSUER,
+                        options={"verify_aud": False}
+                    )
+                    if not payload.get("sub"):
+                        raise HTTPException(status_code=401, detail="Token Clerk inválido (sub ausente)")
+                    return payload
+                except Exception:
+                    pass
+
+            # 2) Fallback: verificar token JWT do Supabase (HS256)
             payload = jwt.decode(
                 token,
                 SUPABASE_JWT_SECRET,

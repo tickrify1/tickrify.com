@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { X, Crown, Check, Zap, Star, Shield, Target, Brain } from 'lucide-react';
 import { useSubscription } from '../../hooks/useSubscription';
+import { products, formatPrice } from '../../pricing';
+import { useAuth } from '../../hooks/useAuth';
 import { useStripe } from '../../hooks/useStripe';
-import { stripeProducts, formatPrice } from '../../stripe-config';
 
 interface SubscriptionModalProps {
   isOpen: boolean;
@@ -87,32 +88,43 @@ export function SubscriptionModal({ isOpen, onClose, initialPlanId }: Subscripti
   const [selectedPlan, setSelectedPlan] = useState<string | null>(initialPlanId || null);
   const [isLoading, setIsLoading] = useState(false);
   const { getCurrentPlan, getPlanType } = useSubscription();
+  const { user, login } = useAuth();
   const { createCheckoutSession } = useStripe();
   const currentPlan = getCurrentPlan();
   const isFree = getPlanType() === 'free';
+  
+  const resumingRef = useRef(false);
 
   if (!isOpen) return null;
 
   // Simplifica a lógica de seleção
-  const canSelect = (product: any, isCurrentPlan: boolean) => {
-    return !isCurrentPlan && (isFree || product.name === 'Trader');
+  const canSelect = (_product: any, isCurrentPlan: boolean) => {
+    return !isCurrentPlan;
   };
 
   const handlePlanSelect = async (priceId: string) => {
     setIsLoading(true);
     setSelectedPlan(priceId);
     try {
-      const product = stripeProducts.find(p => p.priceId === priceId);
+      const product = products.find(p => p.priceId === priceId);
       if (!product) throw new Error('Plano não encontrado');
-      // Garante que window.location.origin nunca tem barra final
+      // Se não estiver logado, guardar intenção e abrir login
+      if (!user) {
+        try {
+          localStorage.setItem('tickrify-pending-price', priceId);
+        } catch {}
+        await login('', '');
+        // Não continuar aqui; retomaremos após login pelo useEffect abaixo
+        return;
+      }
+      // Sem bypass: usar Stripe para todos os usuários
       const origin = window.location.origin.replace(/\/$/, '');
-      const { session_id } = await createCheckoutSession({
-        priceId: priceId, // já está correto, é o ID do Stripe
+      await createCheckoutSession({
+        priceId: priceId,
         mode: product.mode,
         successUrl: `${origin}/success?session_id={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${origin}/cancel`
       });
-      // O redirecionamento é feito pelo Stripe.js, não manualmente
     } catch (error) {
       console.error('Erro ao processar plano:', error);
       alert('Erro ao processar. Tente novamente.');
@@ -122,6 +134,38 @@ export function SubscriptionModal({ isOpen, onClose, initialPlanId }: Subscripti
       // Não limpar selectedPlan aqui para manter feedback visual até redirecionar
     }
   };
+
+  // Após login, retomar automaticamente o checkout se houve intenção anterior
+  useEffect(() => {
+    if (!isOpen || !user || resumingRef.current) return;
+    let pending: string | null = null;
+    try { pending = localStorage.getItem('tickrify-pending-price'); } catch {}
+    if (!pending) return;
+    const product = products.find(p => p.priceId === pending);
+    if (!product) {
+      try { localStorage.removeItem('tickrify-pending-price'); } catch {}
+      return;
+    }
+    resumingRef.current = true;
+    (async () => {
+      try {
+        setIsLoading(true);
+        const origin = window.location.origin.replace(/\/$/, '');
+        await createCheckoutSession({
+          priceId: pending as string,
+          mode: product.mode,
+          successUrl: `${origin}/success?session_id={CHECKOUT_SESSION_ID}`,
+          cancelUrl: `${origin}/cancel`
+        });
+      } catch (err) {
+        console.error('Erro ao retomar checkout:', err);
+      } finally {
+        setIsLoading(false);
+        try { localStorage.removeItem('tickrify-pending-price'); } catch {}
+        resumingRef.current = false;
+      }
+    })();
+  }, [isOpen, user, createCheckoutSession]);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -153,7 +197,7 @@ export function SubscriptionModal({ isOpen, onClose, initialPlanId }: Subscripti
         {/* Plans Grid */}
         <div className="p-4 sm:p-8">
           <div className="flex flex-wrap justify-center gap-6">
-            {stripeProducts.map((product) => {
+            {products.map((product) => {
               const isCurrentPlan = currentPlan?.priceId === product.priceId;
               const isSelected = selectedPlan === product.priceId;
               const selectable = canSelect(product, isCurrentPlan);

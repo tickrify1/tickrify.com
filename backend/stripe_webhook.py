@@ -311,6 +311,8 @@ async def handle_subscription_deleted(subscription):
             print(f"✅ Assinatura cancelada com sucesso: {db_subscription.id}")
         else:
             print(f"❌ Erro ao cancelar assinatura {db_subscription.id}")
+    except Exception as e:
+        print(f"❌ Erro ao processar customer.subscription.deleted: {e}")
 
 async def handle_invoice_payment_failed(invoice):
     """Marca assinatura como inativa em caso de falha de pagamento"""
@@ -330,9 +332,6 @@ async def handle_invoice_payment_failed(invoice):
         print(f"❌ Pagamento falhou, assinatura marcada como inativa: {db_subscription.id}")
     except Exception as e:
         print(f"❌ Erro ao processar invoice.payment_failed: {e}")
-    
-    except Exception as e:
-        print(f"❌ Erro ao processar customer.subscription.deleted: {e}")
 
 def map_price_id_to_plan_type(price_id: str) -> str:
     """Mapeia o price_id do Stripe para o tipo de plano"""
@@ -344,3 +343,5 @@ def map_price_id_to_plan_type(price_id: str) -> str:
     }
     
     return price_map.get(price_id, "free")
+
+

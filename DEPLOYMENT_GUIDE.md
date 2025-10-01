@@ -1,6 +1,6 @@
 # Guia de Implantação do Tickrify
 
-Este guia fornece instruções detalhadas para implantar o Tickrify em produção, configurando todos os componentes necessários para um sistema completo e funcional.
+Este guia fornece inuções detalhadas para implantar o Tickrify em produção, configurando todos os componentes necessários para um sistema completo e funcional.
 
 ## Índice
 
@@ -8,7 +8,7 @@ Este guia fornece instruções detalhadas para implantar o Tickrify em produçã
 2. [Configuração do Banco de Dados](#configuração-do-banco-de-dados)
 3. [Configuração do Backend](#configuração-do-backend)
 4. [Configuração do Frontend](#configuração-do-frontend)
-5. [Configuração do Stripe](#configuração-do-stripe)
+5. [Configuração do ipe](#configuração-do-ipe)
 6. [Configuração da OpenAI](#configuração-da-openai)
 7. [Implantação em Produção](#implantação-em-produção)
 8. [Monitoramento e Manutenção](#monitoramento-e-manutenção)
@@ -18,7 +18,7 @@ Este guia fornece instruções detalhadas para implantar o Tickrify em produçã
 Antes de iniciar a implantação, certifique-se de ter:
 
 - Conta no [Supabase](https://supabase.com) (para banco de dados e autenticação)
-- Conta no [Stripe](https://stripe.com) (para processamento de pagamentos)
+- Conta no [ipe](https://ipe.com) (para processamento de pagamentos)
 - Conta na [OpenAI](https://openai.com) (para análise de gráficos)
 - Servidor para hospedar o backend (recomendamos [Digital Ocean](https://www.digitalocean.com), [AWS](https://aws.amazon.com) ou [Heroku](https://www.heroku.com))
 - Serviço para hospedar o frontend (recomendamos [Vercel](https://vercel.com) ou [Netlify](https://www.netlify.com))
@@ -55,8 +55,8 @@ Antes de iniciar a implantação, certifique-se de ter:
      SUPABASE_URL=sua-url-do-supabase
      SUPABASE_SERVICE_KEY=sua-chave-de-serviço-do-supabase
      SUPABASE_JWT_SECRET=seu-segredo-jwt-do-supabase
-     STRIPE_SECRET_KEY=sua-chave-secreta-do-stripe
-     STRIPE_WEBHOOK_SECRET=seu-segredo-de-webhook-do-stripe
+     IPE_SECRET_KEY=sua-chave-secreta-do-ipe
+     IPE_WEBHOOK_SECRET=seu-segredo-de-webhook-do-ipe
      OPENAI_API_KEY=sua-chave-da-api-openai
      ```
 
@@ -129,7 +129,7 @@ Antes de iniciar a implantação, certifique-se de ter:
      VITE_SUPABASE_URL=sua-url-do-supabase
      VITE_SUPABASE_ANON_KEY=sua-chave-anonima-do-supabase
      VITE_API_URL=https://api.seudominio.com
-     VITE_STRIPE_PUBLISHABLE_KEY=sua-chave-publicavel-do-stripe
+     VITE_IPE_PUBLISHABLE_KEY=sua-chave-publicavel-do-ipe
      ```
 
 3. **Compilar para produção**:
@@ -144,16 +144,16 @@ Antes de iniciar a implantação, certifique-se de ter:
      - Instale a CLI do Netlify: `npm i -g netlify-cli`
      - Execute: `netlify deploy --prod`
 
-## Configuração do Stripe
+## Configuração do ipe
 
 1. **Configurar produtos e preços**:
-   - Acesse o [Dashboard do Stripe](https://dashboard.stripe.com)
+   - Acesse o [Dashboard do ipe](https://dashboard.ipe.com)
    - Crie os produtos e preços correspondentes aos planos do Tickrify
    - Anote os IDs dos preços para configuração no frontend
 
 2. **Configurar webhook**:
-   - No Dashboard do Stripe, vá para Developers > Webhooks
-   - Adicione um endpoint: `https://api.seudominio.com/webhook/stripe`
+   - No Dashboard do ipe, vá para Developers > Webhooks
+   - Adicione um endpoint: `https://api.seudominio.com/webhook/ipe`
    - Selecione os eventos:
      - `checkout.session.completed`
      - `invoice.payment_succeeded`
@@ -162,7 +162,7 @@ Antes de iniciar a implantação, certifique-se de ter:
    - Anote o Signing Secret para configuração no backend
 
 3. **Atualizar configuração no código**:
-   - Atualize os IDs de produtos/preços no arquivo `src/stripe-config.ts`
+   - Atualize os IDs de produtos/preços no arquivo `src/ipe-config.ts`
 
 ## Configuração da OpenAI
 
@@ -180,7 +180,7 @@ Antes de iniciar a implantação, certifique-se de ter:
    - Teste todas as funcionalidades em ambiente de staging
    - Verifique se todas as variáveis de ambiente estão configuradas
    - Verifique se o banco de dados está configurado corretamente
-   - Verifique se os webhooks do Stripe estão funcionando
+   - Verifique se os webhooks do ipe estão funcionando
 
 2. **Implantação**:
    - Implante o backend no servidor de produção
@@ -188,7 +188,7 @@ Antes de iniciar a implantação, certifique-se de ter:
    - Configure os domínios e certificados SSL
 
 3. **Verificação pós-implantação**:
-   - Teste o fluxo de registro e login
+   - Teste o fluxo de regio e login
    - Teste o fluxo de assinatura e pagamento
    - Teste a análise de gráficos
    - Verifique se os webhooks estão recebendo eventos
@@ -198,11 +198,11 @@ Antes de iniciar a implantação, certifique-se de ter:
 1. **Configurar monitoramento**:
    - Configure alertas para erros no backend
    - Configure monitoramento de uso da API OpenAI
-   - Configure alertas para falhas de pagamento no Stripe
+   - Configure alertas para falhas de pagamento no ipe
 
 2. **Backups**:
    - Configure backups automáticos do banco de dados
-   - Estabeleça um processo de recuperação de desastres
+   - Estabeleça um processo de recuperação de desaes
 
 3. **Atualizações**:
    - Estabeleça um processo para atualizações de segurança

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export type PageType = 'dashboard' | 'signals' | 'settings' | 'success' | 'cancel' | 'landing' | 'custom-api';
+export type PageType = 'dashboard' | 'signals' | 'success' | 'cancel' | 'landing' | 'custom-api';
 
 export function useNavigation() {
   const [currentPage, setCurrentPage] = useState<PageType>('dashboard');

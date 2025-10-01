@@ -58,9 +58,7 @@ export function LoginForm({ onSwitchToRegister, onClose }: LoginFormProps) {
   return (
     <div className="w-full max-w-md mx-auto">
       <div className="text-center mb-8">
-        <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <LogIn className="w-8 h-8 text-white" />
-        </div>
+        <img src="/tickrify-logo-icon.png" alt="Tickrify" className="h-12 w-auto mx-auto mb-4" />
         <h2 className="text-2xl font-bold text-gray-900">Entrar no Tickrify</h2>
         <p className="text-gray-600 mt-2">Acesse sua conta para continuar</p>
       </div>

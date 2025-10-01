@@ -53,6 +53,13 @@ body {
   overflow-x: hidden; /* Evita scroll horizontal */
 }
 
+/* Ajuste: quando a sidebar estiver colapsada, reduzir a margem do conteúdo (.ml-64) */
+@media (min-width: 1024px) {
+  body.sidebar-collapsed .ml-64 {
+    margin-left: 64px !important; /* largura aproximada da barra colapsada */
+  }
+}
+
 html {
   overflow-x: hidden; /* Evita scroll horizontal */
 }

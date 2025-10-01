@@ -78,7 +78,7 @@ Horário: ${new Date(signal.timestamp).toLocaleString()}`;
   const colorClass = getSignalColor(signal.type);
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-lg transition-all duration-200 hover:border-blue-300 w-full max-w-full sm:max-w-md mx-auto">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-lg transition-all duration-200 hover:border-blue-300 w-full max-w-full sm:max-w-md mx-auto overflow-hidden">
       <div className="p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3 sm:gap-0">
           <div className="flex items-center space-x-3 w-full sm:w-auto">
@@ -98,8 +98,8 @@ Horário: ${new Date(signal.timestamp).toLocaleString()}`;
             </div>
           </div>
           <div className="flex items-center space-x-2 w-full sm:w-auto justify-between sm:justify-end mt-2 sm:mt-0">
-            <div className="text-right flex-1">
-              <p className="text-lg sm:text-2xl font-bold text-gray-900">${signal.price.toLocaleString()}</p>
+            <div className="text-right flex-1 min-w-0">
+              <p className="text-lg sm:text-2xl font-bold text-gray-900 truncate">${signal.price.toLocaleString()}</p>
               <div className="flex items-center text-xs sm:text-sm text-gray-500 mt-1 justify-end">
                 <Clock className="w-4 h-4 mr-1" />
                 {new Date(signal.timestamp).toLocaleTimeString([], { 
@@ -139,7 +139,7 @@ Horário: ${new Date(signal.timestamp).toLocaleString()}`;
         <div className="mb-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs sm:text-sm text-gray-600">Confiança</span>
-            <span className="text-xs sm:text-sm font-semibold">{signal.confidence}%</span>
+            <span className="text-xs sm:text-sm font-semibold whitespace-nowrap">{signal.confidence}%</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div

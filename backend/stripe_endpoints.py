@@ -129,12 +129,11 @@ async def update_subscription(req: StripeUpdateSubscriptionRequest, current_user
         # Atualizar preço da assinatura no banco de dados
         if subscription:
             # Mapear price_id para tipo de plano (mensal/anual)
-            price_id_to_plan_type = {
-                os.getenv('STRIPE_PRICE_TRADER_MONTHLY') or 'price_1RjU3gB1hl0IoocUWlz842SY': 'trader',
-                os.getenv('STRIPE_PRICE_TRADER_YEARLY') or 'price_1RjU3gB1hl0IoocUWlz842SY': 'trader',
-            }
-            
-            plan_type = price_id_to_plan_type.get(req.new_price_id, 'free')
+            import os
+            plan_type = {
+                (os.getenv('STRIPE_PRICE_TRADER_MONTHLY') or 'price_1RjU3gB1hl0IoocUWlz842SY'): 'trader',
+                (os.getenv('STRIPE_PRICE_TRADER_YEARLY') or 'price_1RjU3gB1hl0IoocUWlz842SY'): 'trader',
+            }.get(req.new_price_id, 'free')
             
             await Database.update_subscription(subscription.id, {
                 "price_id": req.new_price_id,

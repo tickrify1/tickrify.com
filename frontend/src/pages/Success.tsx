@@ -2,19 +2,21 @@ import React, { useEffect } from 'react';
 import { CheckCircle, ArrowRight, Crown, Zap } from 'lucide-react';
 import { useNavigation } from '../hooks/useNavigation';
 import { useSubscription } from '../hooks/useSubscription';
-import { formatPrice } from '../stripe-config';
+import { formatPrice } from '../pricing';
 
 export function Success() {
   const { navigateTo } = useNavigation();
   const { refetch, getCurrentPlan } = useSubscription();
 
   useEffect(() => {
-    // Refetch subscription data to get the latest status
-    const timer = setTimeout(() => {
-      refetch();
-    }, 2000); // Wait 2 seconds for webhook to process
-
-    return () => clearTimeout(timer);
+    // Atualiza imediatamente e faz um pequeno polling curto para sincronizar UI
+    refetch();
+    const t1 = setTimeout(() => refetch(), 800);
+    const t2 = setTimeout(() => refetch(), 2000);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
   }, [refetch]);
 
   const handleContinue = () => {
@@ -26,6 +28,7 @@ export function Success() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-blue-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl p-8 text-center">
+        <img src="/tickrify-logo-full.png" alt="Tickrify" className="h-10 w-auto mx-auto mb-4" />
         <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
           <CheckCircle className="w-12 h-12 text-emerald-600" />
         </div>

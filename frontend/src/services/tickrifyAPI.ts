@@ -95,7 +95,11 @@ export class TickrifyBackendAPI {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(`Erro HTTP ${response.status}: ${errorData.detail || 'Erro desconhecido'}`);
+        const message = errorData.detail || 'Erro desconhecido';
+        const err: any = new Error(`HTTP ${response.status}: ${message}`);
+        err.status = response.status;
+        err.detail = message;
+        throw err;
       }
 
       const result: BackendAnalysisResponse = await response.json();
