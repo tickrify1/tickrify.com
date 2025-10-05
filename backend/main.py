@@ -627,13 +627,11 @@ async def analyze_chart(
         print(f"🖼️  Imagem salva temporariamente em: {image_path}")
         
         try:
-            # Política: free nunca usa OpenAI; premium usa IA se disponível
-            if is_premium and OPENAI_AVAILABLE:
-                print("🤖 (Premium) Usando serviço de IA para análise...")
-                result = analyze_chart_with_ai(image_path)
-            else:
-                print("🎲 (Free ou fallback) Usando análise simulada...")
-                result = simulate_chart_analysis(image_path)
+            # Forçar IA real sempre
+            if not OPENAI_AVAILABLE:
+                raise HTTPException(status_code=500, detail="OPENAI_API_KEY não configurada no servidor")
+            print("🤖 (Forçado) Usando serviço de IA para análise...")
+            result = analyze_chart_with_ai(image_path)
             
             print(f"✅ Análise concluída: {result.acao} - {result.justificativa}")
             
