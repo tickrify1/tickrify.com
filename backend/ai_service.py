@@ -3,14 +3,30 @@ import base64
 import json
 import requests
 from typing import Dict, Any, Optional
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 
-# Carregar variáveis de ambiente
-load_dotenv()
+def _load_env_once() -> None:
+    """Ensure .env is loaded from project root if available.
+    Uses find_dotenv to locate the nearest .env and loads it if not already loaded.
+    """
+    try:
+        dotenv_path = find_dotenv(usecwd=True)
+        if dotenv_path:
+            load_dotenv(dotenv_path, override=False)
+        else:
+            # Fallback: try default loader (no-op if already loaded)
+            load_dotenv(override=False)
+    except Exception:
+        # Do not raise here; absence of .env should not crash the service
+        pass
 
-# Configurar chaves de API
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+def _get_api_keys() -> Dict[str, Optional[str]]:
+    """Fetch API keys from environment at call time (not only at import time)."""
+    _load_env_once()
+    return {
+        "openai": os.getenv("OPENAI_API_KEY"),
+        "gemini": os.getenv("GEMINI_API_KEY"),
+    }
 
 # Prompt profissional para análise técnica
 PROFESSIONAL_TRADING_PROMPT = """
@@ -98,6 +114,8 @@ class AIService:
     @staticmethod
     def analyze_chart_with_openai(image_base64: str) -> Dict[str, Any]:
         """Analisa um gráfico usando OpenAI Vision API"""
+        keys = _get_api_keys()
+        OPENAI_API_KEY = keys.get("openai")
         if not OPENAI_API_KEY:
             raise ValueError("OPENAI_API_KEY não configurada")
         
@@ -168,6 +186,8 @@ class AIService:
     @staticmethod
     def analyze_chart_with_gemini(image_base64: str) -> Dict[str, Any]:
         """Analisa um gráfico usando Google Gemini API"""
+        keys = _get_api_keys()
+        GEMINI_API_KEY = keys.get("gemini")
         if not GEMINI_API_KEY:
             raise ValueError("GEMINI_API_KEY não configurada")
         
@@ -237,8 +257,9 @@ class AIService:
     @staticmethod
     def analyze_chart(image_base64: str) -> Dict[str, Any]:
         """Analisa um gráfico usando o melhor provedor disponível"""
+        keys = _get_api_keys()
         # Tentar OpenAI primeiro
-        if OPENAI_API_KEY:
+        if keys.get("openai"):
             try:
                 print("🤖 Tentando análise com OpenAI...")
                 return AIService.analyze_chart_with_openai(image_base64)
@@ -246,7 +267,7 @@ class AIService:
                 print(f"⚠️ Falha na análise OpenAI: {e}")
         
         # Tentar Gemini como fallback
-        if GEMINI_API_KEY:
+        if keys.get("gemini"):
             try:
                 print("🤖 Tentando análise com Gemini...")
                 return AIService.analyze_chart_with_gemini(image_base64)
