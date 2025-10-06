@@ -24,4 +24,28 @@ export function useUser(): { isLoaded: boolean; isSignedIn: boolean; user: null 
   return { isLoaded: true, isSignedIn: false, user: null };
 }
 
+type OpenOptions = Record<string, unknown> | undefined;
+
+export function useClerk(): {
+  signOut: () => Promise<void>;
+  openSignIn: (options?: OpenOptions) => Promise<void>;
+  openSignUp: (options?: OpenOptions) => Promise<void>;
+  user: null;
+} {
+  const signOut = async () => {};
+  const openSignIn = async (_options?: OpenOptions) => {};
+  const openSignUp = async (_options?: OpenOptions) => {};
+  return { signOut, openSignIn, openSignUp, user: null };
+}
+
+export function SignInButton({ children }: { children?: React.ReactNode }) {
+  const { openSignIn } = useClerk();
+  return <button onClick={() => openSignIn()}>{children || 'Sign in'}</button>;
+}
+
+export function SignUpButton({ children }: { children?: React.ReactNode }) {
+  const { openSignUp } = useClerk();
+  return <button onClick={() => openSignUp()}>{children || 'Sign up'}</button>;
+}
+
 
