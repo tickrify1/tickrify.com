@@ -627,11 +627,17 @@ async def analyze_chart(
         print(f"🖼️  Imagem salva temporariamente em: {image_path}")
         
         try:
-            # Forçar IA real sempre
+            # Tentar IA real primeiro; em caso de falha, aplicar fallback simulado
             if not OPENAI_AVAILABLE:
-                raise HTTPException(status_code=500, detail="OPENAI_API_KEY não configurada no servidor")
-            print("🤖 (Forçado) Usando serviço de IA para análise...")
-            result = analyze_chart_with_ai(image_path)
+                print("⚠️ OPENAI_API_KEY não disponível - aplicando fallback simulado")
+                result = simulate_chart_analysis(image_path)
+            else:
+                try:
+                    print("🤖 Usando serviço de IA para análise...")
+                    result = analyze_chart_with_ai(image_path)
+                except Exception as e:
+                    print(f"⚠️ Falha IA real: {e} | Aplicando fallback simulado")
+                    result = simulate_chart_analysis(image_path)
             
             print(f"✅ Análise concluída: {result.acao} - {result.justificativa}")
             
