@@ -18,6 +18,7 @@ from fastapi import Header
 import stripe
 from .stripe_endpoints import router as stripe_router
 from .stripe_webhook import stripe_webhook as stripe_webhook_handler
+from .signal_api import router as signal_router
 
 # Carregar variáveis de ambiente
 load_dotenv()
@@ -704,6 +705,7 @@ if not stripe.api_key:
 
 # Incluir rotas do Stripe
 app.include_router(stripe_router)
+app.include_router(signal_router)
 
 # Expor o webhook do Stripe na mesma aplicação, preservando headers
 @app.post("/webhook/stripe")
