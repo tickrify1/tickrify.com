@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Zap, TrendingUp, TrendingDown, Minus, Download, Filter, Trash2, BarChart3, Target, Brain, Activity } from 'lucide-react';
 import { useSignals } from '../hooks/useSignals';
 import { SignalCard } from '../components/Signals/SignalCard';
+import SignalTab from '../components/SignalTab';
 
 export function Signals() {
   const { signals, isGenerating, generateNewSignal, removeSignal, clearAllSignals } = useSignals();
@@ -57,6 +58,9 @@ export function Signals() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 space-y-6 sm:space-y-8">
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+          <SignalTab />
+        </div>
         
         {/* Header Principal */}
         <div className="text-center relative">
