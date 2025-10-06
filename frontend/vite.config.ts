@@ -27,7 +27,7 @@ export default defineConfig(({ mode }) => {
         zlib: "browserify-zlib",
         util: 'util',
         ...(useClerkShim
-          ? { '@clerk/clerk-react': path.resolve(__dirname, 'src/shims/clerk-react.ts') }
+          ? { '@clerk/clerk-react': path.resolve(__dirname, 'src/shims/clerk-react.tsx') }
           : {})
       }
     },
