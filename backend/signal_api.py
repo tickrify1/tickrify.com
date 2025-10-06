@@ -1,4 +1,7 @@
 from typing import Optional
+import os
+import json
+from datetime import datetime
 from fastapi import APIRouter
 from pydantic import BaseModel
 from .signal_utils import interpret_model_output, canonical_signal_response
@@ -20,7 +23,17 @@ async def generate_signal_from_model():
     Returns (text, logits) where one may be None.
     """
     # For now, return a neutral WAIT suggestion to be deterministic without external deps
-    return ("Recommendation: WAIT due to mixed signals.", None)
+    text = "Recommendation: WAIT due to mixed signals."
+    # model_debug_mode: persist raw outputs for auditing
+    if os.getenv("MODEL_DEBUG_MODE", "").lower() in {"1", "true", "yes", "on"}:
+        try:
+            os.makedirs("logs/model_debug", exist_ok=True)
+            payload = {"timestamp": datetime.utcnow().isoformat() + "Z", "text": text, "logits": None}
+            with open(f"logs/model_debug/{datetime.utcnow().strftime('%Y%m%dT%H%M%S%f')}.json", "w") as f:
+                json.dump(payload, f)
+        except Exception:
+            pass
+    return (text, None)
 
 
 def get_model_version_or_none() -> Optional[str]:

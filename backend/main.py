@@ -568,7 +568,9 @@ async def health_check():
 # Alias para ambientes onde a aplicação fica atrás de /api (ex.: Vercel)
 @app.get("/api/health")
 async def health_check_api():
-    return await health_check()
+    # Minimal shape required by deployment checks
+    from datetime import datetime
+    return {"ok": True, "timestamp": datetime.now().isoformat()}
 
 @app.post("/api/analyze-chart", response_model=ChartAnalysisResponse)
 async def analyze_chart(

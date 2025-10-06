@@ -1,0 +1,13 @@
+[
+  {"text": "strong buy setup with confluence", "expected": "BUY"},
+  {"text": "weak sell signal after breakdown", "expected": "SELL"},
+  {"text": "hold or wait for confirmation", "expected": "WAIT"},
+  {"text": "compra com rsi em sobrevenda", "expected": "BUY"},
+  {"text": "venda após perda de suporte", "expected": "SELL"},
+  {"text": "esperar até romper resistência", "expected": "WAIT"},
+  {"text": "long bias remains", "expected": "BUY"},
+  {"text": "short pressure dominates", "expected": "SELL"},
+  {"text": "neutral stance, wait", "expected": "WAIT"}
+]
+
+
