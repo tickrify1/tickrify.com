@@ -130,7 +130,11 @@ class AIService:
         
         models_to_try = [
             "gpt-4o",
-            "gpt-4o-mini"
+            "gpt-4o-mini",
+            "gpt-4-turbo",
+            "gpt-4-vision-preview",
+            "gpt-4.1",
+            "gpt-4.1-mini"
         ]
         last_error = None
         for model_name in models_to_try:
@@ -162,7 +166,12 @@ class AIService:
                 )
                 if response.status_code != 200:
                     print(f"❌ OpenAI {model_name} status {response.status_code}: {response.text}")
-                    last_error = Exception(f"OpenAI {model_name} {response.status_code}")
+                    try:
+                        err_json = response.json()
+                        err_msg = err_json.get("error", {}).get("message") or response.text
+                    except Exception:
+                        err_msg = response.text
+                    last_error = Exception(f"OpenAI {model_name} {response.status_code}: {err_msg}")
                     continue
                 result = response.json()
                 content = result["choices"][0]["message"]["content"]
