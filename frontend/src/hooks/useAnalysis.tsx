@@ -73,15 +73,9 @@ export function useAnalysis() {
           throw new Error('Imagem obrigatória para análise via backend');
         }
       } catch (backendError: any) {
-        console.error('❌ Erro no backend de análise:', backendError);
-        // Fallback: gerar mock se backend indisponível
-        const actions: Array<BackendAnalysisResponse['acao']> = ['compra', 'venda', 'esperar'];
-        const randomAction = actions[Math.floor(Math.random() * actions.length)];
-        const mockResponse: BackendAnalysisResponse = {
-          acao: randomAction,
-          justificativa: 'Fallback local de teste. Backend indisponível.'
-        };
-        result = tickrifyAPI.convertToLegacyFormat(mockResponse, symbol);
+        console.error('❌ Erro no backend de análise (IA real exigida):', backendError);
+        // Sem fallback: propagar erro para o componente exibir
+        throw backendError;
       }
       
       console.log('📊 Resultado final da análise:', result);
@@ -215,6 +209,9 @@ export function useAnalysis() {
 
   // Manter compatibilidade com nome antigo
 
+  // Em modo real, o frontend não bloqueia preventivamente; backend faz controle
+  const canAnalyze = () => true;
+
   const clearAnalysis = () => {
     setCurrentAnalysis(null);
     setAnaliseIA(null);
@@ -234,6 +231,7 @@ export function useAnalysis() {
     monthlyUsage,
     planLimits,
     analyzeChart,
+    canAnalyze,
     clearAnalysis,
     clearAllAnalyses
   };
