@@ -260,8 +260,8 @@ def analyze_chart_with_ai(image_path: str) -> ChartAnalysisResponse:
         
         print("🤖 Enviando imagem para análise com IA...")
         
-        # Usar o serviço de IA para análise
-        analysis_json = AIService.analyze_chart(base64_image)
+        # Usar o serviço de IA (OpenAI) para análise
+        analysis_json = AIService.analyze_chart_with_openai(base64_image)
         
         print(f"🤖 Resposta IA recebida e processada")
         print(f"🔍 ANÁLISE PROCESSADA:")
