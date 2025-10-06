@@ -113,7 +113,7 @@ class AIService:
     
     @staticmethod
     def analyze_chart_with_openai(image_base64: str) -> Dict[str, Any]:
-        """Analisa um gráfico usando OpenAI Vision API"""
+        """Analisa um gráfico usando OpenAI Vision API com fallback de modelos."""
         keys = _get_api_keys()
         OPENAI_API_KEY = keys.get("openai")
         if not OPENAI_API_KEY:
@@ -128,60 +128,61 @@ class AIService:
             "Content-Type": "application/json"
         }
         
-        payload = {
-            "model": "gpt-4o",
-            "messages": [
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": PROFESSIONAL_TRADING_PROMPT},
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": f"data:image/png;base64,{image_base64}"
+        models_to_try = [
+            "gpt-4o",
+            "gpt-4o-mini"
+        ]
+        last_error = None
+        for model_name in models_to_try:
+            payload = {
+                "model": model_name,
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": PROFESSIONAL_TRADING_PROMPT},
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"data:image/png;base64,{image_base64}"
+                                }
                             }
-                        }
-                    ]
-                }
-            ],
-            "max_tokens": 2000,
-            "temperature": 0.1
-        }
-        
-        try:
-            response = requests.post(
-                "https://api.openai.com/v1/chat/completions",
-                headers=headers,
-                json=payload
-            )
-            
-            if response.status_code != 200:
-                print(f"❌ Erro na API OpenAI: {response.status_code}")
-                print(response.text)
-                raise Exception(f"Erro na API OpenAI: {response.status_code}")
-            
-            result = response.json()
-            content = result["choices"][0]["message"]["content"]
-            
-            # Extrair JSON da resposta
+                        ]
+                    }
+                ],
+                "max_tokens": 2000,
+                "temperature": 0.1
+            }
             try:
-                # Tentar parsear como JSON direto
-                analysis_json = json.loads(content)
-            except json.JSONDecodeError:
-                # Tentar extrair JSON de uma resposta que pode ter texto adicional
-                import re
-                json_match = re.search(r'\{.*\}', content, re.DOTALL)
-                if json_match:
-                    json_content = json_match.group()
-                    analysis_json = json.loads(json_content)
-                else:
-                    raise ValueError("Não foi possível extrair JSON válido da resposta")
-            
-            return analysis_json
-            
-        except Exception as e:
-            print(f"❌ Erro na análise OpenAI: {e}")
-            raise
+                response = requests.post(
+                    "https://api.openai.com/v1/chat/completions",
+                    headers=headers,
+                    json=payload,
+                    timeout=60
+                )
+                if response.status_code != 200:
+                    print(f"❌ OpenAI {model_name} status {response.status_code}: {response.text}")
+                    last_error = Exception(f"OpenAI {model_name} {response.status_code}")
+                    continue
+                result = response.json()
+                content = result["choices"][0]["message"]["content"]
+                try:
+                    analysis_json = json.loads(content)
+                except json.JSONDecodeError:
+                    import re
+                    json_match = re.search(r'\{.*\}', content, re.DOTALL)
+                    if json_match:
+                        json_content = json_match.group()
+                        analysis_json = json.loads(json_content)
+                    else:
+                        raise ValueError("Não foi possível extrair JSON válido da resposta")
+                return analysis_json
+            except Exception as e:
+                print(f"⚠️ Falha com modelo {model_name}: {e}")
+                last_error = e
+                continue
+        # Se todos os modelos falharem, propagar último erro
+        raise last_error or Exception("Falha desconhecida na OpenAI")
     
     @staticmethod
     def analyze_chart_with_gemini(image_base64: str) -> Dict[str, Any]:
