@@ -156,6 +156,13 @@ export class TickrifyBackendAPI {
     const recommendation = actionMap[backendResponse.acao];
     const confidence = confidenceMap[backendResponse.acao];
 
+    // Normalizar decisão para UI
+    const decisao = backendResponse.acao === 'compra'
+      ? 'ENTRAR'
+      : backendResponse.acao === 'venda'
+      ? 'EVITAR'
+      : 'AGUARDAR';
+
     // Gerar preços simulados para compatibilidade
     const basePrice = 42000;
     const targetPrice = recommendation === 'BUY' ? basePrice * 1.05 : 
@@ -165,7 +172,7 @@ export class TickrifyBackendAPI {
 
     return {
       analise_tecnica: `Análise realizada via IA: ${backendResponse.justificativa}`,
-      decisao: backendResponse.acao.toUpperCase(),
+      decisao,
       justificativa_decisao: backendResponse.justificativa,
       confianca_percentual: confidence,
       indicadores_utilizados: ['IA Vision Analysis', 'Pattern Recognition'],
